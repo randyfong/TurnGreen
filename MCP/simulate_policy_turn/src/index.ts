@@ -117,28 +117,48 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
   const priorLandCover: LandCoverDistribution = { ...current_state.land_cover };
   const updatedLandCover: LandCoverDistribution = { ...current_state.land_cover };
 
-  // Calculate maximum reducible built-up area
-  const maxAvailableBuiltUp = updatedLandCover.built_up_50;
-  const targetBuiltUpReduction = Math.abs((policy.conversions.built_up_50 ?? 0) * pctConversion);
-  const scale = targetBuiltUpReduction > maxAvailableBuiltUp && targetBuiltUpReduction > 0
-    ? maxAvailableBuiltUp / targetBuiltUpReduction
-    : 1.0;
+  // Determine available budget and conversion scale based on source classes
+  // Identify source classes (negative deltas) and destination classes (positive deltas)
+  let maxPossibleScale = 1.0;
+  for (const [key, deltaPerUnit] of Object.entries(policy.conversions)) {
+    if (deltaPerUnit && deltaPerUnit < 0) {
+      const classKey = key as keyof LandCoverDistribution;
+      const available = updatedLandCover[classKey] ?? 0;
+      const targetReduction = Math.abs(deltaPerUnit * pctConversion);
+      if (targetReduction > 0) {
+        const classScale = available / targetReduction;
+        if (classScale < maxPossibleScale) {
+          maxPossibleScale = Math.max(0, classScale);
+        }
+      }
+    }
+  }
 
-  const effectivePctConversion = pctConversion * scale;
+  const effectivePctConversion = pctConversion * maxPossibleScale;
 
   // Apply shifts to land cover
+  let primarySourceClass: keyof LandCoverDistribution | null = null;
+  let maxSourceReduction = 0;
+
   for (const [key, deltaPerUnit] of Object.entries(policy.conversions)) {
     const classKey = key as keyof LandCoverDistribution;
     const delta = (deltaPerUnit ?? 0) * effectivePctConversion;
-    updatedLandCover[classKey] = Math.max(0, Math.min(100, updatedLandCover[classKey] + delta));
+    if ((deltaPerUnit ?? 0) < 0 && Math.abs(delta) > maxSourceReduction) {
+      maxSourceReduction = Math.abs(delta);
+      primarySourceClass = classKey;
+    }
+    // Round each change to 2 decimal places
+    updatedLandCover[classKey] = Number(Math.max(0, Math.min(100, updatedLandCover[classKey] + delta)).toFixed(2));
   }
 
-  // Re-normalize land cover to ensure it sums strictly to 100%
-  const total = Object.values(updatedLandCover).reduce((acc, v) => acc + v, 0);
-  if (total > 0 && Math.abs(total - 100) > 0.01) {
-    for (const key of Object.keys(updatedLandCover) as (keyof LandCoverDistribution)[]) {
-      updatedLandCover[key] = Number(((updatedLandCover[key] / total) * 100).toFixed(2));
-    }
+  // Ensure land cover sums strictly to 100% without proportional re-scaling of untouched classes
+  // (Proportional normalization causes untouched classes like tree_cover or grassland to bleed/shift)
+  const total = Number(Object.values(updatedLandCover).reduce((acc, v) => acc + v, 0).toFixed(2));
+  const diff = Number((100 - total).toFixed(2));
+  if (Math.abs(diff) > 0.0001) {
+    // Absorb rounding discrepancy into the primary source class or built_up_50
+    const targetKey = primarySourceClass ?? ("built_up_50" as keyof LandCoverDistribution);
+    updatedLandCover[targetKey] = Number(Math.max(0, Math.min(100, updatedLandCover[targetKey] + diff)).toFixed(2));
   }
 
   // Track roof treatment area (in hectares)
@@ -206,7 +226,7 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
       id: policy.id,
       name: policy.name,
       budget_allocated: actualBudgetSpent,
-      area_converted_hectares: Number(hectaresConverted.toFixed(2)),
+      area_converted_hectares: Number(((effectivePctConversion / 100) * current_state.total_area_hectares).toFixed(2)),
       pct_area_converted: Number(effectivePctConversion.toFixed(2))
     },
     next_state: {

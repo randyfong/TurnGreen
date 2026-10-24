@@ -71,6 +71,29 @@ function runTest() {
     throw new Error(`Turn 4 prior albedo (${turn4Result.science_payload.invest_urban_cooling.effective_albedo.prior}) does not match Turn 3 post albedo (${turn3Result.science_payload.invest_urban_cooling.effective_albedo.post})!`);
   }
 
+  console.log("\n[Turn 5] Deploying Bioswales ($13,000 budget)...");
+  const turn5Result = executeSimulation({
+    turn: 5,
+    intervention_id: "bioswales",
+    budget_allocated: 13000,
+    current_state: turn4Result.next_state
+  });
+  console.log("Turn 5 Tree Cover Shift:", turn5Result.science_payload.esa_worldcover_shifts.tree_cover_10);
+  console.log("Turn 5 Grassland Shift:", turn5Result.science_payload.esa_worldcover_shifts.grassland_30);
+  console.log("Turn 5 Shrubland Shift:", turn5Result.science_payload.esa_worldcover_shifts.shrubland_20);
+
+  const priorTree = turn4Result.next_state.land_cover.tree_cover_10;
+  const postTree = turn5Result.next_state.land_cover.tree_cover_10;
+  if (priorTree !== postTree) {
+    throw new Error(`Bioswales displaced existing tree cover! Prior: ${priorTree}, Post: ${postTree}`);
+  }
+
+  const sumTotal = Object.values(turn5Result.next_state.land_cover).reduce((a, b) => a + b, 0);
+  console.log("Turn 5 Total Land Cover Sum:", sumTotal);
+  if (Math.abs(sumTotal - 100) > 0.01) {
+    throw new Error(`Land cover does not sum to 100%: ${sumTotal}`);
+  }
+
   console.log("\n=== Test successfully completed! ===");
 }
 
