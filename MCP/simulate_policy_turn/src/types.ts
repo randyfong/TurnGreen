@@ -80,7 +80,10 @@ export interface SimulationResult {
   intervention: {
     id: InterventionType;
     name: string;
+    budget_requested: number;
     budget_allocated: number;
+    budget_capped: boolean;
+    budget_warning?: string;
     area_converted_hectares: number;
     pct_area_converted: number;
   };

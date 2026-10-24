@@ -94,6 +94,42 @@ function runTest() {
     throw new Error(`Land cover does not sum to 100%: ${sumTotal}`);
   }
 
+  console.log("\n[Overspending Check] Requesting $600,000 against $500,000 budget...");
+  const overspendState = {
+    total_area_hectares: 50,
+    remaining_budget: 500000,
+    land_cover: {
+      tree_cover_10: 10,
+      shrubland_20: 5,
+      grassland_30: 5,
+      cropland_40: 0,
+      built_up_50: 75,
+      bare_soil_60: 5,
+      water_80: 0
+    }
+  };
+  const overspendResult = executeSimulation({
+    turn: 1,
+    intervention_id: "urban_canopy_trees",
+    budget_allocated: 600000,
+    current_state: overspendState
+  });
+
+  console.log("Budget Requested:", overspendResult.intervention.budget_requested);
+  console.log("Budget Allocated:", overspendResult.intervention.budget_allocated);
+  console.log("Budget Capped:", overspendResult.intervention.budget_capped);
+  console.log("Budget Warning:", overspendResult.intervention.budget_warning);
+
+  if (!overspendResult.intervention.budget_capped) {
+    throw new Error("Expected budget_capped to be true!");
+  }
+  if (overspendResult.intervention.budget_allocated !== 500000) {
+    throw new Error(`Expected budget_allocated to be 500000, got ${overspendResult.intervention.budget_allocated}`);
+  }
+  if (!overspendResult.intervention.budget_warning) {
+    throw new Error("Expected budget_warning to be defined!");
+  }
+
   console.log("\n=== Test successfully completed! ===");
 }
 

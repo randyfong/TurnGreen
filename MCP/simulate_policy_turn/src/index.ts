@@ -106,7 +106,13 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
   }
 
   // Validate budget
-  const actualBudgetSpent = Math.min(budget_allocated, current_state.remaining_budget);
+  const budgetRequested = budget_allocated;
+  const isCapped = budgetRequested > current_state.remaining_budget;
+  const actualBudgetSpent = isCapped ? current_state.remaining_budget : budgetRequested;
+  const budgetWarning = isCapped
+    ? `Requested budget ($${budgetRequested.toLocaleString()}) exceeded remaining budget ($${current_state.remaining_budget.toLocaleString()}). Allocation was capped to $${actualBudgetSpent.toLocaleString()}.`
+    : undefined;
+
   const newRemainingBudget = Math.max(0, current_state.remaining_budget - actualBudgetSpent);
 
   // Compute conversion percentage based on budget spent
@@ -225,7 +231,10 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
     intervention: {
       id: policy.id,
       name: policy.name,
+      budget_requested: budgetRequested,
       budget_allocated: actualBudgetSpent,
+      budget_capped: isCapped,
+      ...(budgetWarning ? { budget_warning: budgetWarning } : {}),
       area_converted_hectares: Number(((effectivePctConversion / 100) * current_state.total_area_hectares).toFixed(2)),
       pct_area_converted: Number(effectivePctConversion.toFixed(2))
     },
