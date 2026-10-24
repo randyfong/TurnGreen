@@ -180,6 +180,27 @@ export class TurnGreenClientSession {
     return [...this.turnsPlayed];
   }
 
+  public getLearningGainResult(): Readonly<AssessmentRecordResponse["learning_gain"]> | null {
+    return this.learningGainResult ? { ...this.learningGainResult } : null;
+  }
+
+  /**
+   * Score & Metric Mapping:
+   * Maps average_normalized_gain directly from record_assessment_score into
+   * generate_youth_resolution's learning_gain.normalized_gain.
+   */
+  public getMappedLearningGain(): SessionHistory["learning_gain"] {
+    if (!this.learningGainResult) {
+      return undefined;
+    }
+    return {
+      normalized_gain: this.learningGainResult.average_normalized_gain,
+      gain_category: this.learningGainResult.gain_category,
+      summary: this.learningGainResult.gain_explanation || `Category: ${this.learningGainResult.gain_category}`
+    };
+  }
+
+
   // --- Assessment Lifecycle ---
 
   /**
@@ -373,14 +394,10 @@ export class TurnGreenClientSession {
         shrubland_pct: this.initialLandCover.shrubland_20,
         bare_soil_pct: this.initialLandCover.bare_soil_60
       },
-      learning_gain: this.learningGainResult
-        ? {
-            normalized_gain: this.learningGainResult.average_normalized_gain,
-            gain_category: this.learningGainResult.gain_category,
-            summary: this.learningGainResult.gain_explanation || `Category: ${this.learningGainResult.gain_category}`
-          }
-        : undefined
+      // Score & Metric Mapping: Maps average_normalized_gain directly to learning_gain.normalized_gain
+      learning_gain: this.getMappedLearningGain()
     };
+
 
     return wrapMCPToolCallSync<YouthResolutionDocument>(() => {
       try {

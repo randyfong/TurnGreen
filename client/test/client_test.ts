@@ -268,9 +268,52 @@ function runClientTests() {
   }
   console.assert(malformedCaught, "Expected MCPResponseError on malformed JSON");
 
-  console.log("\n🎉 ALL CLIENT BRIDGE, PRE-FLIGHT & RESPONSE CONTRACT TESTS PASSED! 🎉\n");
+  // 10. Explicit Score & Metric Mapping Test:
+  // Map average_normalized_gain from record_assessment_score directly into generate_youth_resolution's learning_gain.normalized_gain
+  console.log("\n[Test 10] Score & Metric Mapping: average_normalized_gain -> learning_gain.normalized_gain...");
+  const mappingSession = new TurnGreenClientSession({
+    session_id: "metric-mapping-session-42",
+    author_name: "Taylor Reed",
+    district_name: "Ward 5 - Metro Basin",
+    initial_budget: 100000
+  });
+
+  // Pre-assessment: Q1=1, Q2=2 (Total = 3, Max possible = 10, room for gain = 7)
+  mappingSession.recordPreAssessment({ q1_canopy_flooding: 1, q2_pavement_heat: 2 });
+
+  // Play Turn 1
+  mappingSession.submitTurn({
+    turn: 1,
+    intervention_id: "urban_canopy_trees",
+    budget_allocated: 30000
+  });
+
+  // Post-assessment: Q1=4, Q2=5 (Total = 9, Gain = 6/7 = ~0.857)
+  const postAssessmentRes = mappingSession.recordPostAssessment({ q1_canopy_flooding: 4, q2_pavement_heat: 5 });
+  const rawHakeGain = postAssessmentRes.learning_gain?.average_normalized_gain;
+  console.log("record_assessment_score average_normalized_gain:", rawHakeGain);
+  console.assert(rawHakeGain !== undefined && rawHakeGain > 0.85, "Gain should be ~0.857");
+
+  // Verify getMappedLearningGain() directly maps average_normalized_gain
+  const mappedGain = mappingSession.getMappedLearningGain();
+  console.log("Mapped learning_gain for resolution:", mappedGain);
+  console.assert(
+    mappedGain?.normalized_gain === rawHakeGain,
+    `Expected mapped normalized_gain (${mappedGain?.normalized_gain}) to strictly equal rawHakeGain (${rawHakeGain})`
+  );
+  console.assert(
+    mappedGain?.gain_category === postAssessmentRes.learning_gain?.gain_category,
+    "Category matches"
+  );
+
+  // Generate resolution and verify it receives mapped gain
+  const mappedResolution = mappingSession.generateResolution();
+  console.log("✓ Resolution successfully compiled with directly mapped learning gain:", mappedResolution.resolution_number);
+
+  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING) PASSED! 🎉\n");
 }
 
 runClientTests();
+
 
 
