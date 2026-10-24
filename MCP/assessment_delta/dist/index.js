@@ -78,11 +78,7 @@ export function executeRecordAssessment(inputRaw) {
         preBaseline = session?.preAssessment;
     }
     if (!preBaseline) {
-        // Fallback if client did not call turn 0 and did not pass prior_assessment: default baseline 1
-        preBaseline = {
-            q1_canopy_flooding: 1,
-            q2_pavement_heat: 1
-        };
+        throw new Error("Baseline assessment required before calculating learning gain. Complete Turn 0 baseline or supply prior_assessment in the request.");
     }
     // Save post assessment
     sessionStore.savePostAssessment(session_id, responses);

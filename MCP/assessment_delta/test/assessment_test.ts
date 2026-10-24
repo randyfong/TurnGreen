@@ -116,6 +116,27 @@ function runTests() {
     console.log("✓ Expected validation error caught properly.");
   }
 
+  // Test 6: Missing baseline on Turn 5
+  console.log("\n[Test 6] Turn 5 post-assessment without baseline or prior_assessment...");
+  try {
+    executeRecordAssessment({
+      session_id: "non-existent-session-123",
+      turn: 5,
+      responses: {
+        q1_canopy_flooding: 4,
+        q2_pavement_heat: 4
+      }
+    });
+    console.assert(false, "Should have thrown error for missing baseline");
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.assert(
+      errorMsg.includes("Baseline assessment required before calculating learning gain"),
+      "Error message should mention baseline requirement"
+    );
+    console.log("✓ Expected missing baseline error caught:", errorMsg);
+  }
+
   console.log("\n🎉 ALL ASSESSMENT DELTA TESTS PASSED SUCCESSFULLY! 🎉\n");
 }
 
