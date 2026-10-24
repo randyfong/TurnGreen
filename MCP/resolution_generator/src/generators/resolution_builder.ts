@@ -19,8 +19,9 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
 
   // 1. Calculate / Aggregate Scorecard Metrics
   let totalCoolingC = 0;
-  let totalStormwaterM3 = 0;
-  let totalAreaConvertedHa = 0;
+  let singleStormRunoffReductionM3 = 0;
+  let groundDepavedHa = 0;
+  let rooftopTreatedHa = 0;
   let totalSpend = 0;
 
   for (const t of turns) {
@@ -28,11 +29,18 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
     if (t.surface_temp_drop_celsius) {
       totalCoolingC += t.surface_temp_drop_celsius;
     }
-    if (t.runoff_retained_m3) {
-      totalStormwaterM3 += t.runoff_retained_m3;
+    // Single-storm runoff reduction is a cumulative property at the end of planning:
+    // Take the maximum or final turn's storm retention improvement rather than summing 5 snapshot storms
+    if (t.runoff_retained_m3 && t.runoff_retained_m3 > singleStormRunoffReductionM3) {
+      singleStormRunoffReductionM3 = t.runoff_retained_m3;
     }
-    if (t.area_converted_ha) {
-      totalAreaConvertedHa += t.area_converted_ha;
+
+    const ha = t.area_converted_ha ?? 0;
+    if (t.intervention_id === "cool_roofs" || t.intervention_id === "green_roofs") {
+      rooftopTreatedHa += ha;
+    } else {
+      // Ground de-paving: urban_canopy_trees, permeable_pavement, bioswales, pocket_parks
+      groundDepavedHa += ha;
     }
   }
 
@@ -42,31 +50,40 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
       totalCoolingC = session_history.final_metrics.net_cooling_celsius;
     }
     if (session_history.final_metrics.net_stormwater_retained_m3) {
-      totalStormwaterM3 = session_history.final_metrics.net_stormwater_retained_m3;
+      singleStormRunoffReductionM3 = session_history.final_metrics.net_stormwater_retained_m3;
     }
-    if (session_history.final_metrics.total_area_converted_ha) {
-      totalAreaConvertedHa = session_history.final_metrics.total_area_converted_ha;
+    if (session_history.final_metrics.ground_depaved_ha !== undefined) {
+      groundDepavedHa = session_history.final_metrics.ground_depaved_ha;
+    }
+    if (session_history.final_metrics.rooftop_treated_ha !== undefined) {
+      rooftopTreatedHa = session_history.final_metrics.rooftop_treated_ha;
     }
   }
 
   // Ensure reasonable baseline if raw turn numbers were minimal
   if (totalCoolingC === 0) totalCoolingC = 1.4;
-  if (totalStormwaterM3 === 0) totalStormwaterM3 = 4850;
-  if (totalAreaConvertedHa === 0) totalAreaConvertedHa = 3.25;
+  if (singleStormRunoffReductionM3 === 0) singleStormRunoffReductionM3 = 4850;
+  if (groundDepavedHa === 0 && rooftopTreatedHa === 0) {
+    groundDepavedHa = 2.2;
+    rooftopTreatedHa = 1.05;
+  }
 
   const totalCoolingF = totalCoolingC * 1.8;
-  const stormwaterGallons = Math.round(totalStormwaterM3 * 264.172);
+  const stormwaterGallons = Math.round(singleStormRunoffReductionM3 * 264.172);
+  const totalCombinedHa = Number((groundDepavedHa + rooftopTreatedHa).toFixed(2));
 
   const scorecard: BiophysicalScorecard = {
     total_heat_reduction_display: `-${totalCoolingC.toFixed(1)}°C (-${totalCoolingF.toFixed(1)}°F)`,
     total_heat_reduction_c: totalCoolingC,
     total_heat_reduction_f: totalCoolingF,
-    total_stormwater_retained_m3: Math.round(totalStormwaterM3),
+    total_stormwater_retained_m3: Math.round(singleStormRunoffReductionM3),
     total_stormwater_retained_gallons: stormwaterGallons,
-    total_depaved_ha: totalAreaConvertedHa,
-    total_trees_or_greenspace_pct_increase: Math.min(25, Number((totalAreaConvertedHa * 2.5).toFixed(1))),
+    total_depaved_ha: Number(groundDepavedHa.toFixed(2)),
+    ground_depaved_ha: Number(groundDepavedHa.toFixed(2)),
+    rooftop_treated_ha: Number(rooftopTreatedHa.toFixed(2)),
+    total_trees_or_greenspace_pct_increase: Math.min(25, Number((groundDepavedHa * 2.5).toFixed(1))),
     un_sdg_15_3_1_avoided_degradation_score: "Compliant (Avoided Artificial Degradation)",
-    budget_efficiency_rating: "High Impact ($3.40 return per $1 invested)"
+    budget_efficiency_rating: "High Impact (Direct avoided flood damage & heat relief)"
   };
 
   // 2. Build 3 Actionable Talking Points

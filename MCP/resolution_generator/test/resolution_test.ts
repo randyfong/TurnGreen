@@ -93,10 +93,13 @@ try {
   console.log("[PASS] Scorecard Display:", result.biophysical_scorecard.total_heat_reduction_display);
   console.log("[PASS] Stormwater Retained (m3):", result.biophysical_scorecard.total_stormwater_retained_m3);
   console.log("[PASS] Stormwater Retained (gal):", result.biophysical_scorecard.total_stormwater_retained_gallons);
+  console.log("[PASS] Ground De-paved (ha):", result.biophysical_scorecard.ground_depaved_ha);
+  console.log("[PASS] Rooftop Treated (ha):", result.biophysical_scorecard.rooftop_treated_ha);
 
   // Assertions
   assert.strictEqual(result.author_name, "Maya Chen");
   assert.strictEqual(result.district_name, "District 7 - Southside Heat Basin");
+  assert.strictEqual(result.biophysical_scorecard.total_stormwater_retained_m3, 4900, "Should match final_metrics single-storm retention");
   assert.strictEqual(result.talking_points.length, 3, "Must generate exactly 3 talking points");
 
   console.log("\n--- Generated 3 Actionable Talking Points ---");

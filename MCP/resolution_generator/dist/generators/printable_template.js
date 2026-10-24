@@ -218,11 +218,11 @@ export function renderSinglePageHtml(doc) {
       </div>
       <div class="score-card">
         <span class="val">${escapeHtml(doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString())} m³</span>
-        <span class="lbl">Stormwater Retained (USDA-SCS)</span>
+        <span class="lbl">Design Storm Runoff Diverted</span>
       </div>
       <div class="score-card">
-        <span class="val">${escapeHtml(doc.biophysical_scorecard.total_depaved_ha.toFixed(2))} ha</span>
-        <span class="lbl">De-Paved Soil Restored</span>
+        <span class="val">${escapeHtml(doc.biophysical_scorecard.ground_depaved_ha.toFixed(2))} ha</span>
+        <span class="lbl">Ground De-Paved (${escapeHtml(doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2))} ha Roofs)</span>
       </div>
       <div class="score-card">
         <span class="val">SDG 15.3.1</span>
@@ -285,8 +285,9 @@ ${doc.executive_summary}
 | Metric | Value | Scientific Validation Framework |
 | :--- | :--- | :--- |
 | **Heatwave Surface Cooling** | **${doc.biophysical_scorecard.total_heat_reduction_display}** | Stanford InVEST Urban Cooling Model |
-| **Stormwater Retention Volume** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal) | USDA-SCS Curve Number Hydrology |
-| **Degraded Land De-Paved** | **${doc.biophysical_scorecard.total_depaved_ha.toFixed(2)} hectares** | ESA WorldCover 10m (Class 50 &rarr; 10/20) |
+| **Design Storm Runoff Diverted** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³ / storm** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal) | USDA-SCS Curve Number Hydrology |
+| **Net Ground De-Paved** | **${doc.biophysical_scorecard.ground_depaved_ha.toFixed(2)} hectares** | ESA WorldCover 10m (Class 50 &rarr; 10/20) |
+| **Rooftop Retrofits** | **${doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2)} hectares** | High-Albedo & Vegetative Roofs |
 | **Global Standard Alignment** | **UN SDG 15.3.1 Target** | UNCCD Trends.Earth Avoided Degradation |
 | **Budget Efficiency** | **${doc.biophysical_scorecard.budget_efficiency_rating}** | Municipal Cost-Avoidance Analysis |
 

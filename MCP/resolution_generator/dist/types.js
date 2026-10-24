@@ -31,6 +31,8 @@ export const CumulativeMetricsSchema = z.object({
     net_stormwater_retained_m3: z.number().default(0),
     net_stormwater_retained_gallons: z.number().default(0),
     total_area_converted_ha: z.number().default(0),
+    ground_depaved_ha: z.number().optional().describe("Net ground area de-paved (Classes 10 & 20)"),
+    rooftop_treated_ha: z.number().optional().describe("Rooftop retrofit area (cool roofs and green roofs)"),
     depaved_impervious_pct: z.number().default(0),
     overall_sustainability_score: z.number().min(0).max(100).default(75),
     community_cheer_score: z.number().min(0).max(100).default(80)
