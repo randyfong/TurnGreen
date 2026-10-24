@@ -1,0 +1,22 @@
+{
+  "name": "turngreen-assessment-delta-mcp",
+  "version": "1.0.0",
+  "description": "MCP tool to record pre- and post-simulation micro-assessments and calculate FERPA-compliant normalized cognitive learning gains for TurnGreen",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "tsx test/assessment_test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.0"
+  }
+}
