@@ -1,8 +1,11 @@
 import {
   TurnGreenClientSession,
   validateTurnBudget,
-  ValidationError
+  ValidationError,
+  parseMCPResponse,
+  MCPResponseError
 } from "../src/TurnGreenClient.js";
+
 
 function runClientTests() {
   console.log("=== Testing TurnGreen Client Bridge & Pre-Flight Validation ===\n");
@@ -198,8 +201,76 @@ function runClientTests() {
     "Expected exactly 3 talking points"
   );
 
-  console.log("\n🎉 ALL CLIENT BRIDGE & PRE-FLIGHT VALIDATION TESTS PASSED! 🎉\n");
+  // 8. Explicit MCP Response Contract Handling (isError check before parsing content[0].text as JSON)
+  console.log("\n[Test 8] MCP Response Contract Handling: isError check before parsing JSON...");
+
+
+  // Case A: Valid MCP response parsing JSON content
+  const validMCPResponse = {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({ status: "ok", test_metric: 42 })
+      }
+    ]
+  };
+  const parsedValid = parseMCPResponse<{ status: string; test_metric: number }>(validMCPResponse);
+  console.log("✓ Successfully parsed valid MCP JSON response:", parsedValid);
+  console.assert(parsedValid.status === "ok" && parsedValid.test_metric === 42, "Parsed payload matches");
+
+  // Case B: isError is true with plain text content that is NOT valid JSON
+  const errorMCPResponse = {
+    isError: true,
+    content: [
+      {
+        type: "text",
+        text: "Simulation error: Requested budget ($600,000) exceeds maximum allowable limit"
+      }
+    ]
+  };
+
+  let errorCaught = false;
+  try {
+    // Should NOT throw SyntaxError from JSON.parse; should throw MCPResponseError because isError is checked first!
+    parseMCPResponse(errorMCPResponse);
+  } catch (err: unknown) {
+    if (err instanceof MCPResponseError) {
+      errorCaught = true;
+      console.log("✓ isError correctly intercepted before JSON parsing:", err.message);
+      console.assert(
+        err.message.includes("Simulation error: Requested budget ($600,000)"),
+        "Error message should preserve tool plain text error"
+      );
+      console.assert(err.response.isError === true, "Response object preserved on error");
+    }
+  }
+  console.assert(errorCaught, "Expected MCPResponseError to be thrown without JSON parsing crash");
+
+  // Case C: Malformed JSON on a non-error response
+  console.log("\n[Test 9] MCP Response Contract: Malformed JSON on non-error response...");
+  const malformedMCPResponse = {
+    content: [
+      {
+        type: "text",
+        text: "NOT_VALID_JSON_STRING {{"
+      }
+    ]
+  };
+  let malformedCaught = false;
+  try {
+    parseMCPResponse(malformedMCPResponse);
+  } catch (err: unknown) {
+    if (err instanceof MCPResponseError) {
+      malformedCaught = true;
+      console.log("✓ Malformed non-error JSON caught with diagnostic context:", err.message);
+      console.assert(err.message.includes("Failed to parse MCP response content[0].text as JSON"), "Clear message");
+    }
+  }
+  console.assert(malformedCaught, "Expected MCPResponseError on malformed JSON");
+
+  console.log("\n🎉 ALL CLIENT BRIDGE, PRE-FLIGHT & RESPONSE CONTRACT TESTS PASSED! 🎉\n");
 }
 
 runClientTests();
+
 

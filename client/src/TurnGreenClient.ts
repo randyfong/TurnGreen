@@ -1,6 +1,12 @@
 import { executeSimulation } from "../../MCP/simulate_policy_turn/dist/index.js";
 import { executeRecordAssessment } from "../../MCP/assessment_delta/dist/index.js";
 import { executeGenerateYouthResolution } from "../../MCP/resolution_generator/dist/index.js";
+import {
+  parseMCPResponse,
+  wrapMCPToolCallSync,
+  MCPResponseError
+} from "./mcpResponseParser.js";
+import type { MCPCallToolResponse } from "./mcpResponseParser.js";
 import type {
   NeighborhoodState,
   InterventionType,
@@ -17,6 +23,11 @@ import type {
   SessionHistory
 } from "../../MCP/resolution_generator/dist/types.js";
 
+export { parseMCPResponse, wrapMCPToolCallSync, MCPResponseError };
+export type { MCPCallToolResponse };
+
+
+
 export class ValidationError extends Error {
   public field?: string;
   public details?: unknown;
@@ -28,6 +39,7 @@ export class ValidationError extends Error {
     this.details = details;
   }
 }
+
 
 export interface ClientTurnInput {
   turn: number;
@@ -173,16 +185,35 @@ export class TurnGreenClientSession {
   /**
    * Pre-simulation Turn 0 Assessment:
    * Stores prior_assessment in client session state and records baseline with assessment_delta.
+   * Tool response is wrapped in MCP response contract checking isError before JSON parsing.
    */
   public recordPreAssessment(responses: AssessmentResponses): AssessmentRecordResponse {
     // 1. Store in client session state
     this.priorAssessment = { ...responses };
 
-    // 2. Dispatch to assessment_delta tool
-    const result = executeRecordAssessment({
-      session_id: this.sessionId,
-      turn: 0,
-      responses: this.priorAssessment
+    // 2. Dispatch to assessment_delta tool wrapped in MCP response contract
+    const result = wrapMCPToolCallSync<AssessmentRecordResponse>(() => {
+      try {
+        const payload = executeRecordAssessment({
+          session_id: this.sessionId,
+          turn: 0,
+          responses: this.priorAssessment
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload)
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Assessment error: ${message}` }]
+        };
+      }
     });
 
     return result;
@@ -192,6 +223,7 @@ export class TurnGreenClientSession {
    * Post-simulation Turn 5 Assessment:
    * Forwards client-stored prior_assessment along with Turn 5 responses.
    * Throws ValidationError if prior_assessment is missing in client session state.
+   * Tool response is wrapped in MCP response contract checking isError before JSON parsing.
    */
   public recordPostAssessment(responses: AssessmentResponses): AssessmentRecordResponse {
     if (!this.priorAssessment) {
@@ -204,16 +236,35 @@ export class TurnGreenClientSession {
     this.postAssessment = { ...responses };
 
     // Forward stored prior_assessment explicitly to ensure reliable evaluation and stateless recovery
-    const result = executeRecordAssessment({
-      session_id: this.sessionId,
-      turn: 5,
-      prior_assessment: this.priorAssessment,
-      responses: this.postAssessment
+    const result = wrapMCPToolCallSync<AssessmentRecordResponse>(() => {
+      try {
+        const payload = executeRecordAssessment({
+          session_id: this.sessionId,
+          turn: 5,
+          prior_assessment: this.priorAssessment,
+          responses: this.postAssessment
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload)
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Assessment error: ${message}` }]
+        };
+      }
     });
 
     this.learningGainResult = result.learning_gain || null;
     return result;
   }
+
 
   // --- Simulation Lifecycle ---
 
@@ -243,12 +294,30 @@ export class TurnGreenClientSession {
     // Reject before calling simulate_policy_turn if allocated exceeds remaining budget
     validateTurnBudget(input.budget_allocated, this.currentState.remaining_budget);
 
-    // Call simulation engine
-    const simResult = executeSimulation({
-      turn: input.turn,
-      intervention_id: input.intervention_id,
-      budget_allocated: input.budget_allocated,
-      current_state: this.currentState
+    // Call simulation engine wrapped in MCP response contract
+    const simResult = wrapMCPToolCallSync<SimulationResult>(() => {
+      try {
+        const payload = executeSimulation({
+          turn: input.turn,
+          intervention_id: input.intervention_id,
+          budget_allocated: input.budget_allocated,
+          current_state: this.currentState
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload)
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Simulation error: ${message}` }]
+        };
+      }
     });
 
     // Update client session state
@@ -277,6 +346,7 @@ export class TurnGreenClientSession {
 
   /**
    * Compiles the 1-page Youth Community Planning Resolution from the 5-turn session history.
+   * Wrapped in MCP response contract checking isError before JSON parsing.
    */
   public generateResolution(options: {
     author_name?: string;
@@ -292,7 +362,6 @@ export class TurnGreenClientSession {
     if (this.turnsPlayed.length === 0) {
       throw new ValidationError("Cannot generate resolution: No simulation turns have been played yet.");
     }
-
 
     const sessionHistory: SessionHistory = {
       session_id: this.sessionId,
@@ -313,13 +382,32 @@ export class TurnGreenClientSession {
         : undefined
     };
 
-    return executeGenerateYouthResolution({
-      author_name: options.author_name || this.authorName,
-      district_name: options.district_name || this.districtName,
-      organization_or_school: options.organization_or_school || this.organizationOrSchool,
-      target_body: options.target_body || this.targetBody,
-      session_history: sessionHistory
+    return wrapMCPToolCallSync<YouthResolutionDocument>(() => {
+      try {
+        const payload = executeGenerateYouthResolution({
+          author_name: options.author_name || this.authorName,
+          district_name: options.district_name || this.districtName,
+          organization_or_school: options.organization_or_school || this.organizationOrSchool,
+          target_body: options.target_body || this.targetBody,
+          session_history: sessionHistory
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload)
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Resolution generator error: ${message}` }]
+        };
+      }
     });
   }
 }
+
 
