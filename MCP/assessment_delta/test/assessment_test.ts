@@ -94,9 +94,27 @@ function runTests() {
       q2_pavement_heat: 5
     }
   });
+
+  console.log("Ceiling gain:", ceilingResult.learning_gain?.average_normalized_gain);
+  console.log("Ceiling gain_type:", ceilingResult.learning_gain?.gain_type);
+  console.log("Ceiling gain_category:", ceilingResult.learning_gain?.gain_category);
+  console.log("Ceiling explanation:", ceilingResult.learning_gain?.gain_explanation);
+
   console.assert(
-    ceilingResult.learning_gain?.average_normalized_gain === 1.0,
-    "Ceiling gain should be 1.0"
+    ceilingResult.learning_gain?.average_normalized_gain === 0.0,
+    `Ceiling gain should be 0.0, got ${ceilingResult.learning_gain?.average_normalized_gain}`
+  );
+  console.assert(
+    ceilingResult.learning_gain?.gain_type === "ceiling_effect",
+    `gain_type should be 'ceiling_effect', got ${ceilingResult.learning_gain?.gain_type}`
+  );
+  console.assert(
+    ceilingResult.learning_gain?.gain_category === "Ceiling Effect",
+    `gain_category should be 'Ceiling Effect', got ${ceilingResult.learning_gain?.gain_category}`
+  );
+  console.assert(
+    ceilingResult.learning_gain?.gain_explanation?.includes("Mastery at baseline; ceiling reached"),
+    "gain_explanation should explain baseline ceiling"
   );
   console.log("✓ Ceiling retention test passed.");
 

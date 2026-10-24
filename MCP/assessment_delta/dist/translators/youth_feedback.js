@@ -32,6 +32,11 @@ export function generateYouthLearningFeedback(gain) {
                     "You took the first meaningful steps toward connecting urban land cover changes with neighborhood heat and stormwater resilience.";
             }
             break;
+        case "Ceiling Effect":
+            headline = "Mastery at Baseline (Ceiling Reached)";
+            narrative =
+                "You entered the simulation with complete baseline mastery (5/5) and sustained top-tier environmental understanding throughout all 5 planning cycles.";
+            break;
         case "Zero or Negative Gain":
         default:
             if (gain.total_pre_score >= 9) {

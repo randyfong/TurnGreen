@@ -65,6 +65,7 @@ export interface QuestionGain {
     raw_delta: number;
     max_possible_gain: number;
     normalized_gain: number;
+    gain_type?: "standard" | "ceiling_effect";
 }
 export interface CognitiveGainResult {
     session_id: string;
@@ -76,7 +77,9 @@ export interface CognitiveGainResult {
     total_raw_delta: number;
     max_possible_gain: number;
     average_normalized_gain: number;
-    gain_category: "High Gain" | "Medium Gain" | "Low Gain" | "Zero or Negative Gain";
+    gain_type: "standard" | "ceiling_effect";
+    gain_category: "High Gain" | "Medium Gain" | "Low Gain" | "Zero or Negative Gain" | "Ceiling Effect";
+    gain_explanation?: string;
     question_breakdown: QuestionGain[];
 }
 export interface YouthLearningFeedback {

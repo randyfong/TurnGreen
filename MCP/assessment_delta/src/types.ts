@@ -38,7 +38,8 @@ export interface QuestionGain {
   post_score: number;
   raw_delta: number;
   max_possible_gain: number;
-  normalized_gain: number; // Hake's g
+  normalized_gain: number; // Hake's g (0 for ceiling)
+  gain_type?: "standard" | "ceiling_effect";
 }
 
 export interface CognitiveGainResult {
@@ -50,8 +51,10 @@ export interface CognitiveGainResult {
   total_post_score: number;
   total_raw_delta: number;
   max_possible_gain: number;
-  average_normalized_gain: number; // Overall Hake's g (0 to 1, or negative)
-  gain_category: "High Gain" | "Medium Gain" | "Low Gain" | "Zero or Negative Gain";
+  average_normalized_gain: number; // Overall Hake's g (0 to 1, or 0.0 for ceiling)
+  gain_type: "standard" | "ceiling_effect";
+  gain_category: "High Gain" | "Medium Gain" | "Low Gain" | "Zero or Negative Gain" | "Ceiling Effect";
+  gain_explanation?: string;
   question_breakdown: QuestionGain[];
 }
 

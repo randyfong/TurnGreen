@@ -112,11 +112,16 @@ export function executeRecordAssessment(inputRaw: unknown): AssessmentRecordResp
   const cognitiveGain = evaluateCognitiveDelta(session_id, preBaseline, responses);
   const feedback = generateYouthLearningFeedback(cognitiveGain);
 
+  const summaryMsg =
+    cognitiveGain.gain_type === "ceiling_effect"
+      ? `Post-simulation assessment recorded. Mastery at baseline (Ceiling reached; 0% additional gain).`
+      : `Post-simulation assessment recorded. Normalized learning gain computed (${cognitiveGain.gain_category}: ${(cognitiveGain.average_normalized_gain * 100).toFixed(1)}%).`;
+
   return {
     status: "completed",
     turn: 5,
     session_id,
-    message: `Post-simulation assessment recorded. Normalized learning gain computed (${cognitiveGain.gain_category}: ${(cognitiveGain.average_normalized_gain * 100).toFixed(1)}%).`,
+    message: summaryMsg,
     learning_gain: cognitiveGain,
     youth_feedback: feedback,
     privacy_compliance: {
