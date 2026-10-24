@@ -27,6 +27,8 @@ export interface NeighborhoodState {
   land_cover: LandCoverDistribution;
   remaining_budget: number;
   roof_treatment_hectares?: number; // Cumulative area of high-albedo roof/surface retrofits in hectares
+  baseline_runoff_mm?: number; // Baseline (Turn 0) design storm runoff depth in mm
+  baseline_land_cover?: LandCoverDistribution; // Baseline (Turn 0) land cover distribution
 }
 
 export type InterventionType =
@@ -61,6 +63,16 @@ export const PolicyInputSchema = z.object({
     total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
     remaining_budget: z.number().default(200000).describe("Current player remaining budget"),
     roof_treatment_hectares: z.number().min(0).default(0).describe("Cumulative area of reflective cool roofs/coatings retrofitted in hectares"),
+    baseline_runoff_mm: z.number().min(0).optional().describe("Baseline Turn 0 storm runoff depth in mm"),
+    baseline_land_cover: z.object({
+      tree_cover_10: z.number().min(0).max(100),
+      shrubland_20: z.number().min(0).max(100),
+      grassland_30: z.number().min(0).max(100),
+      cropland_40: z.number().min(0).max(100),
+      built_up_50: z.number().min(0).max(100),
+      bare_soil_60: z.number().min(0).max(100),
+      water_80: z.number().min(0).max(100)
+    }).optional().describe("Baseline Turn 0 land cover distribution"),
     land_cover: z.object({
       tree_cover_10: z.number().min(0).max(100).default(12),
       shrubland_20: z.number().min(0).max(100).default(3),
@@ -101,6 +113,8 @@ export interface SimulationResult {
     cooling_score: number; // 0 - 100
     flood_resilience_score: number; // 0 - 100
     community_cheer_score: number; // 0 - 100
+    design_storm_total_retained_m3: number; // Absolute total stormwater retained by soil/canopy during design storm
+    incremental_runoff_reduction_m3: number; // Incremental stormwater runoff reduction relative to baseline (avoided flood volume)
   };
   science_payload: {
     models_referenced: string[];
@@ -117,12 +131,14 @@ export interface SimulationResult {
     };
     invest_urban_flood: {
       design_storm_depth_mm: number;
+      baseline_runoff_mm: number;
       prior_composite_cn: number;
       post_composite_cn: number;
       prior_runoff_mm: number;
       post_runoff_mm: number;
       retained_runoff_depth_mm: number;
       stormwater_retained_m3: number;
+      incremental_runoff_reduction_m3: number;
       retention_efficiency_pct: number;
     };
   };

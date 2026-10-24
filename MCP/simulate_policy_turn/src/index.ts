@@ -66,6 +66,24 @@ const SIMULATE_POLICY_TURN_TOOL: Tool = {
             minimum: 0,
             description: "Cumulative area of high-albedo cool roofs/surfaces retrofitted in hectares"
           },
+          baseline_runoff_mm: {
+            type: "number",
+            minimum: 0,
+            description: "Baseline Turn 0 storm runoff depth in mm"
+          },
+          baseline_land_cover: {
+            type: "object",
+            description: "Baseline Turn 0 ESA WorldCover percentages",
+            properties: {
+              tree_cover_10: { type: "number", minimum: 0, maximum: 100 },
+              shrubland_20: { type: "number", minimum: 0, maximum: 100 },
+              grassland_30: { type: "number", minimum: 0, maximum: 100 },
+              cropland_40: { type: "number", minimum: 0, maximum: 100 },
+              built_up_50: { type: "number", minimum: 0, maximum: 100 },
+              bare_soil_60: { type: "number", minimum: 0, maximum: 100 },
+              water_80: { type: "number", minimum: 0, maximum: 100 }
+            }
+          },
           land_cover: {
             type: "object",
             description: "Current ESA WorldCover land cover percentages (summing to 100)",
@@ -196,6 +214,28 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
   const priorFlood = calculateInVESTFloodRisk(priorLandCover, current_state.total_area_hectares);
   const postFlood = calculateInVESTFloodRisk(updatedLandCover, current_state.total_area_hectares);
 
+  // Compute baseline (Turn 0) storm runoff depth
+  // If baseline_runoff_mm was supplied in current_state, preserve it.
+  // If baseline_land_cover was supplied, compute from that.
+  // Otherwise, if turn === 1, priorFlood.direct_runoff_mm is the baseline; else calculate or fallback to prior.
+  const baselineLandCover: LandCoverDistribution = current_state.baseline_land_cover ?? priorLandCover;
+  let baselineRunoffMm: number;
+  if (current_state.baseline_runoff_mm !== undefined) {
+    baselineRunoffMm = current_state.baseline_runoff_mm;
+  } else if (current_state.baseline_land_cover) {
+    const baseFlood = calculateInVESTFloodRisk(current_state.baseline_land_cover, current_state.total_area_hectares);
+    baselineRunoffMm = baseFlood.direct_runoff_mm;
+  } else {
+    baselineRunoffMm = priorFlood.direct_runoff_mm;
+  }
+
+  // Incremental runoff reduction relative to Turn 0 baseline (depth in mm and volume in m³)
+  // Runoff reduction depth = max(0, baselineRunoffMm - postFlood.direct_runoff_mm)
+  // Volume (m³) = (reduction_depth_mm / 1000 m) * total_area_m2
+  const runoffReductionDepthMm = Math.max(0, Number((baselineRunoffMm - postFlood.direct_runoff_mm).toFixed(2)));
+  const totalAreaM2 = current_state.total_area_hectares * 10000;
+  const incrementalRunoffReductionM3 = Number(((runoffReductionDepthMm / 1000) * totalAreaM2).toFixed(1));
+
   // Shifts in WorldCover
   const esaShifts: Record<string, { prior_pct: number; post_pct: number; delta_pct: number }> = {};
   for (const key of Object.keys(priorLandCover) as (keyof LandCoverDistribution)[]) {
@@ -242,6 +282,8 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
       total_area_hectares: current_state.total_area_hectares,
       remaining_budget: newRemainingBudget,
       roof_treatment_hectares: Number(newRoofTreatmentHa.toFixed(2)),
+      baseline_runoff_mm: baselineRunoffMm,
+      baseline_land_cover: baselineLandCover,
       land_cover: updatedLandCover
     },
     player_summary: youthSummary,
@@ -249,7 +291,9 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
       overall_sustainability_score: overallSustainability,
       cooling_score: coolingScore,
       flood_resilience_score: floodScore,
-      community_cheer_score: cheerScore
+      community_cheer_score: cheerScore,
+      design_storm_total_retained_m3: postFlood.stormwater_retained_m3,
+      incremental_runoff_reduction_m3: incrementalRunoffReductionM3
     },
     science_payload: {
       models_referenced: [
@@ -279,12 +323,14 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
       },
       invest_urban_flood: {
         design_storm_depth_mm: postFlood.design_storm_depth_mm,
+        baseline_runoff_mm: baselineRunoffMm,
         prior_composite_cn: priorFlood.composite_curve_number,
         post_composite_cn: postFlood.composite_curve_number,
         prior_runoff_mm: priorFlood.direct_runoff_mm,
         post_runoff_mm: postFlood.direct_runoff_mm,
         retained_runoff_depth_mm: postFlood.retained_water_depth_mm,
         stormwater_retained_m3: postFlood.stormwater_retained_m3,
+        incremental_runoff_reduction_m3: incrementalRunoffReductionM3,
         retention_efficiency_pct: postFlood.retention_efficiency_pct
       }
     }

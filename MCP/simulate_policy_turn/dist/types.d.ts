@@ -24,6 +24,8 @@ export interface NeighborhoodState {
     land_cover: LandCoverDistribution;
     remaining_budget: number;
     roof_treatment_hectares?: number;
+    baseline_runoff_mm?: number;
+    baseline_land_cover?: LandCoverDistribution;
 }
 export type InterventionType = "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
 export interface InterventionConfig {
@@ -42,6 +44,32 @@ export declare const PolicyInputSchema: z.ZodObject<{
         total_area_hectares: z.ZodDefault<z.ZodNumber>;
         remaining_budget: z.ZodDefault<z.ZodNumber>;
         roof_treatment_hectares: z.ZodDefault<z.ZodNumber>;
+        baseline_runoff_mm: z.ZodOptional<z.ZodNumber>;
+        baseline_land_cover: z.ZodOptional<z.ZodObject<{
+            tree_cover_10: z.ZodNumber;
+            shrubland_20: z.ZodNumber;
+            grassland_30: z.ZodNumber;
+            cropland_40: z.ZodNumber;
+            built_up_50: z.ZodNumber;
+            bare_soil_60: z.ZodNumber;
+            water_80: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        }, {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        }>>;
         land_cover: z.ZodObject<{
             tree_cover_10: z.ZodDefault<z.ZodNumber>;
             shrubland_20: z.ZodDefault<z.ZodNumber>;
@@ -80,6 +108,16 @@ export declare const PolicyInputSchema: z.ZodObject<{
             bare_soil_60: number;
             water_80: number;
         };
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
     }, {
         land_cover: {
             tree_cover_10?: number | undefined;
@@ -93,6 +131,16 @@ export declare const PolicyInputSchema: z.ZodObject<{
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
         roof_treatment_hectares?: number | undefined;
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
     turn: number;
@@ -111,6 +159,16 @@ export declare const PolicyInputSchema: z.ZodObject<{
             bare_soil_60: number;
             water_80: number;
         };
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
     };
 }, {
     turn: number;
@@ -129,6 +187,16 @@ export declare const PolicyInputSchema: z.ZodObject<{
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
         roof_treatment_hectares?: number | undefined;
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
     };
 }>;
 export type PolicyInput = z.infer<typeof PolicyInputSchema>;
@@ -158,6 +226,8 @@ export interface SimulationResult {
         cooling_score: number;
         flood_resilience_score: number;
         community_cheer_score: number;
+        design_storm_total_retained_m3: number;
+        incremental_runoff_reduction_m3: number;
     };
     science_payload: {
         models_referenced: string[];
@@ -187,12 +257,14 @@ export interface SimulationResult {
         };
         invest_urban_flood: {
             design_storm_depth_mm: number;
+            baseline_runoff_mm: number;
             prior_composite_cn: number;
             post_composite_cn: number;
             prior_runoff_mm: number;
             post_runoff_mm: number;
             retained_runoff_depth_mm: number;
             stormwater_retained_m3: number;
+            incremental_runoff_reduction_m3: number;
             retention_efficiency_pct: number;
         };
     };

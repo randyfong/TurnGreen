@@ -31,7 +31,16 @@ function runTest() {
   console.log("Turn 1 Cooling Score:", turn1Result.player_metrics.cooling_score);
   console.log("Turn 1 Flood Resilience:", turn1Result.player_metrics.flood_resilience_score);
   console.log("Turn 1 Remaining Budget: $" + turn1Result.next_state.remaining_budget);
+  console.log("Turn 1 Total Retained m3:", turn1Result.player_metrics.design_storm_total_retained_m3);
+  console.log("Turn 1 Incremental Runoff Reduction m3:", turn1Result.player_metrics.incremental_runoff_reduction_m3);
   console.log("Turn 1 Prior CN:", turn1Result.science_payload.invest_urban_flood.prior_composite_cn, "-> Post CN:", turn1Result.science_payload.invest_urban_flood.post_composite_cn);
+
+  if (turn1Result.player_metrics.design_storm_total_retained_m3 <= 0) {
+    throw new Error("Expected design_storm_total_retained_m3 > 0");
+  }
+  if (turn1Result.player_metrics.incremental_runoff_reduction_m3 <= 0) {
+    throw new Error("Expected incremental_runoff_reduction_m3 > 0");
+  }
 
   console.log("\n[Turn 2] Deploying Street Tree Canopy ($30,000 budget)...");
   const turn2Result = executeSimulation({
