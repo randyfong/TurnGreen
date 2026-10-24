@@ -26,6 +26,7 @@ export interface NeighborhoodState {
   total_area_hectares: number; // Default e.g. 50 hectares
   land_cover: LandCoverDistribution;
   remaining_budget: number;
+  roof_treatment_hectares?: number; // Cumulative area of high-albedo roof/surface retrofits in hectares
 }
 
 export type InterventionType =
@@ -59,6 +60,7 @@ export const PolicyInputSchema = z.object({
   current_state: z.object({
     total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
     remaining_budget: z.number().default(200000).describe("Current player remaining budget"),
+    roof_treatment_hectares: z.number().min(0).default(0).describe("Cumulative area of reflective cool roofs/coatings retrofitted in hectares"),
     land_cover: z.object({
       tree_cover_10: z.number().min(0).max(100).default(12),
       shrubland_20: z.number().min(0).max(100).default(3),

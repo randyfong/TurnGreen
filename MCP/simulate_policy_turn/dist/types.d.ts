@@ -23,6 +23,7 @@ export interface NeighborhoodState {
     total_area_hectares: number;
     land_cover: LandCoverDistribution;
     remaining_budget: number;
+    roof_treatment_hectares?: number;
 }
 export type InterventionType = "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
 export interface InterventionConfig {
@@ -40,6 +41,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
     current_state: z.ZodObject<{
         total_area_hectares: z.ZodDefault<z.ZodNumber>;
         remaining_budget: z.ZodDefault<z.ZodNumber>;
+        roof_treatment_hectares: z.ZodDefault<z.ZodNumber>;
         land_cover: z.ZodObject<{
             tree_cover_10: z.ZodDefault<z.ZodNumber>;
             shrubland_20: z.ZodDefault<z.ZodNumber>;
@@ -68,6 +70,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         total_area_hectares: number;
         remaining_budget: number;
+        roof_treatment_hectares: number;
         land_cover: {
             tree_cover_10: number;
             shrubland_20: number;
@@ -89,6 +92,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
         };
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
+        roof_treatment_hectares?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
     turn: number;
@@ -97,6 +101,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
     current_state: {
         total_area_hectares: number;
         remaining_budget: number;
+        roof_treatment_hectares: number;
         land_cover: {
             tree_cover_10: number;
             shrubland_20: number;
@@ -123,6 +128,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
         };
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
+        roof_treatment_hectares?: number | undefined;
     };
 }>;
 export type PolicyInput = z.infer<typeof PolicyInputSchema>;

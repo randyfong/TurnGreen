@@ -60,6 +60,12 @@ const SIMULATE_POLICY_TURN_TOOL: Tool = {
             default: 200000,
             description: "Current remaining budget before this turn"
           },
+          roof_treatment_hectares: {
+            type: "number",
+            default: 0,
+            minimum: 0,
+            description: "Cumulative area of high-albedo cool roofs/surfaces retrofitted in hectares"
+          },
           land_cover: {
             type: "object",
             description: "Current ESA WorldCover land cover percentages (summing to 100)",
@@ -135,11 +141,29 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
     }
   }
 
-  // Calculate InVEST Urban Cooling
-  const priorCooling = calculateInVESTCooling(priorLandCover);
+  // Track roof treatment area (in hectares)
+  const priorRoofTreatmentHa = current_state.roof_treatment_hectares ?? 0;
+  let newRoofTreatmentHa = priorRoofTreatmentHa;
+  if (intervention_id === "cool_roofs") {
+    newRoofTreatmentHa += hectaresConverted;
+  }
+
+  // Calculate InVEST Urban Cooling incorporating prior and updated roof treatment albedo boosts
+  // Each hectare of cool roof retrofit contributes an albedo boost over the total district area:
+  // delta_albedo = albedo_boost * (treated_area_ha / total_area_ha)
+  const coolRoofConfig = POLICY_INTERVENTIONS.cool_roofs;
+  const coolRoofAlbedoBoostFactor = coolRoofConfig.albedo_boost ?? 0.35;
+  const priorCoolRoofBoost = (priorRoofTreatmentHa / current_state.total_area_hectares) * coolRoofAlbedoBoostFactor;
+
+  // Additional albedo boost from this turn's intervention (if cool_roofs or permeable_pavement)
+  const turnInterventionAlbedoBoost = policy.albedo_boost
+    ? (policy.albedo_boost * (effectivePctConversion / 100))
+    : 0;
+
+  const priorCooling = calculateInVESTCooling(priorLandCover, priorCoolRoofBoost);
   const postCooling = calculateInVESTCooling(
     updatedLandCover,
-    policy.albedo_boost ? (policy.albedo_boost * (effectivePctConversion / 100)) : 0
+    priorCoolRoofBoost + turnInterventionAlbedoBoost
   );
 
   // Calculate InVEST Urban Flood Risk (SCS-CN)
@@ -188,6 +212,7 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
     next_state: {
       total_area_hectares: current_state.total_area_hectares,
       remaining_budget: newRemainingBudget,
+      roof_treatment_hectares: Number(newRoofTreatmentHa.toFixed(2)),
       land_cover: updatedLandCover
     },
     player_summary: youthSummary,

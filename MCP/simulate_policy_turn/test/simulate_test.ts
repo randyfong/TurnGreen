@@ -47,6 +47,30 @@ function runTest() {
   console.log("Turn 2 Tree Cover Shift:", turn2Result.science_payload.esa_worldcover_shifts.tree_cover_10);
   console.log("Turn 2 Built-up Shift:", turn2Result.science_payload.esa_worldcover_shifts.built_up_50);
 
+  console.log("\n[Turn 3] Deploying Reflective Cool Roofs ($45,000 budget)...");
+  const turn3Result = executeSimulation({
+    turn: 3,
+    intervention_id: "cool_roofs",
+    budget_allocated: 45000,
+    current_state: turn2Result.next_state
+  });
+  console.log("Turn 3 Albedo: Prior", turn3Result.science_payload.invest_urban_cooling.effective_albedo.prior, "-> Post", turn3Result.science_payload.invest_urban_cooling.effective_albedo.post);
+  console.log("Turn 3 roof_treatment_hectares:", turn3Result.next_state.roof_treatment_hectares);
+
+  console.log("\n[Turn 4] Deploying Permeable Pavement ($20,000 budget)...");
+  const turn4Result = executeSimulation({
+    turn: 4,
+    intervention_id: "permeable_pavement",
+    budget_allocated: 20000,
+    current_state: turn3Result.next_state
+  });
+  console.log("Turn 4 Albedo: Prior", turn4Result.science_payload.invest_urban_cooling.effective_albedo.prior, "-> Post", turn4Result.science_payload.invest_urban_cooling.effective_albedo.post);
+  console.log("Turn 4 roof_treatment_hectares persisted:", turn4Result.next_state.roof_treatment_hectares);
+
+  if (turn4Result.science_payload.invest_urban_cooling.effective_albedo.prior !== turn3Result.science_payload.invest_urban_cooling.effective_albedo.post) {
+    throw new Error(`Turn 4 prior albedo (${turn4Result.science_payload.invest_urban_cooling.effective_albedo.prior}) does not match Turn 3 post albedo (${turn3Result.science_payload.invest_urban_cooling.effective_albedo.post})!`);
+  }
+
   console.log("\n=== Test successfully completed! ===");
 }
 
