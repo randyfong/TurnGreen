@@ -208,20 +208,23 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
       "Planting street trees transforms hot asphalt streets into shaded tunnels. Mature tree canopies intercept rainwater before it even hits the ground, while leaf evaporation cools neighborhood air like natural air conditioning.",
     scientific_details: {
       core_equations: [
-        "Net Evapotranspiration ET_r = 0.90",
-        "Canopy Shade Coefficient = 0.95",
-        "Composite Curve Number shift: Class 50 (98) -> Class 10 (60)"
+        "Net Evapotranspiration ET_r = 1.0 (Canopy ET)",
+        "Vegetation Fraction Fv = 0.95",
+        "Composite Curve Number shift: Built-up Class 50 (CN 98) -> Tree Canopy Class 10 (CN 55)",
+        "Conversion rule: Converts 0.70% Built-up and 0.30% Bare Soil per 1.0% Tree Canopy expansion"
       ],
       key_coefficients: {
-        "Unit Cost": "$25,000 per 1% neighborhood conversion",
-        "Cooling Impact": "High (Shade + Evapotranspiration)",
-        "Runoff Impact": "Moderate (Canopy interception + root infiltration)"
+        "Unit Cost": "$7,500 per 1% neighborhood conversion ($15,000/ha for a 50-ha district)",
+        "Conversion Budget Formula": "Conversion % = Budget ($) / $7,500; Hectares = Conversion % * 0.50 ha",
+        "Cooling Impact": "High (Vegetation Fraction 0.95 + Evapotranspiration 1.0)",
+        "Runoff Impact": "High (Canopy interception + root infiltration, CN 55)"
       },
       biophysical_mechanism:
         "Foliage blocks shortwave solar radiation and converts sensible heat to latent heat via transpiration. Roots aerate soil, dramatically increasing infiltration rates.",
       baseline_assumptions: [
-        "Trees planted are climate-resilient native species.",
-        "Maintenance programs ensure canopy health and root volume expansion."
+        "District model assumes standard 50-hectare planning area.",
+        "$100,000 budget funds 13.33% neighborhood canopy expansion (6.67 hectares).",
+        "Trees planted are climate-resilient native species."
       ]
     },
     un_sdg_connection: {
@@ -236,10 +239,12 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
 
 > **Key Takeaway:** Street trees are the most complete natural infrastructure: they provide shade, cool the air through water vapor, and drink up stormwater.
 
-#### Model Parameters:
-- **Evapotranspiration Index:** $ET_r = 0.90$
-- **Shade Factor:** $0.95$
-- **WorldCover Transition:** Built-up (Class 50) $\\rightarrow$ Tree cover (Class 10)
+#### Model Parameters (InVEST & ESA WorldCover):
+- **Unit Cost:** $7,500 per 1% district conversion ($15,000/ha in a 50-ha district). A $100,000 investment expands canopy by 13.33% (6.67 hectares).
+- **Evapotranspiration Index:** $ET_r = 1.0$ (Maximum latent cooling)
+- **Vegetation Fraction:** $F_v = 0.95$
+- **Curve Number:** $CN = 55$ (Forest/Canopy condition vs $CN = 98$ for Asphalt)
+- **WorldCover Transition:** 70% Built-up (Class 50) + 30% Bare Soil (Class 60) $\\rightarrow$ Tree cover (Class 10)
 
 *Source: Stanford InVEST & UNCCD Trends.Earth.*`
   },
@@ -254,20 +259,21 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
       "Permeable plazas replace solid asphalt with porous interlocking pavers, gravel beds, or open ground. Rain drains straight through into the soil below instead of pooling into flash floods on the road.",
     scientific_details: {
       core_equations: [
-        "Runoff Curve Number shift: CN 98 -> CN 70",
-        "Retention Storage S = (25400 / 70) - 254 = 108.8 mm (vs 5.2 mm for asphalt)",
-        "Direct Runoff Q reduction: ~70% drop for 50mm design storm"
+        "Runoff Curve Number shift: Built-up Class 50 (CN 98) -> Shrub/Permeable Class 20/60 (CN ~70)",
+        "Albedo Boost: +0.08 solar reflectance over converted area",
+        "Conversion rule: Replaces 1.0% Built-up with 0.3% Shrubland and 0.7% Permeable ground"
       ],
       key_coefficients: {
-        "Unit Cost": "$20,000 per 1% neighborhood conversion",
+        "Unit Cost": "$8,000 per 1% neighborhood conversion ($16,000/ha for a 50-ha district)",
+        "Conversion Budget Formula": "Conversion % = Budget ($) / $8,000; Hectares = Conversion % * 0.50 ha",
         "Runoff Impact": "Very High (Triples retention capacity)",
-        "Cooling Impact": "Moderate (Slight albedo increase ~0.20)"
+        "Cooling Impact": "Moderate (Albedo boost +0.08)"
       },
       biophysical_mechanism:
         "Eliminates the impermeable barrier between atmosphere and subterranean soil. Restores gravity drainage and natural water table recharge.",
       baseline_assumptions: [
         "Aggregate stone reservoir base underneath provides temporary detention during cloudbursts.",
-        "Periodic vacuum sweeping prevents void clogging."
+        "District model assumes standard 50-hectare planning area."
       ]
     },
     un_sdg_connection: {
@@ -283,9 +289,10 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
 > **Key Takeaway:** De-paving removes the asphalt seal so rainwater can seep naturally into the ground.
 
 #### Hydrological Parameters:
+- **Unit Cost:** $8,000 per 1% district conversion ($16,000/ha in a 50-ha district).
 - **Asphalt CN:** $98$ (95% runoff)
-- **Permeable Paver CN:** $70$ (drastic drop in surface runoff)
-- **Storage Potential:** $S$ increases from $5.2\\text{ mm}$ to $108.8\\text{ mm}$.
+- **Permeable Ground CN:** $\\sim 70$ (drastic drop in surface runoff)
+- **Albedo Boost:** $+0.08$ surface reflectance
 
 *Source: US EPA Green Infrastructure & InVEST Flood Model.*`
   },
@@ -300,19 +307,20 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
       "Bioswales look like shallow, beautiful garden ditches along street curbs, but underneath they contain engineered layers of compost, sand, and deep-rooted native plants designed to trap and clean street runoff within minutes.",
     scientific_details: {
       core_equations: [
-        "Runoff Curve Number shift: CN 98 -> CN 55",
-        "Retention Storage S = (25400 / 55) - 254 = 207.8 mm",
+        "Runoff Curve Number shift: Built-up (98) & Bare Soil (82) -> Shrubland (65) + Grassland (68)",
+        "Conversion rule: Replaces 0.8% Built-up and 0.2% Bare Soil with 0.6% Shrubland and 0.4% Grassland",
         "Runoff Retention Efficiency: >85% for standard 50mm storm"
       ],
       key_coefficients: {
-        "Unit Cost": "$18,000 per 1% neighborhood conversion",
-        "Runoff Impact": "Maximum (Lowest Curve Number)",
+        "Unit Cost": "$6,500 per 1% neighborhood conversion ($13,000/ha for a 50-ha district)",
+        "Conversion Budget Formula": "Conversion % = Budget ($) / $6,500; Hectares = Conversion % * 0.50 ha",
+        "Runoff Impact": "Maximum (High retention plant/soil matrix)",
         "Cooling Impact": "Moderate-High (Evaporative cooling from saturated soil + vegetation)"
       },
       biophysical_mechanism:
         "Combines physical sedimentation, biological filtration through native plant roots, and rapid deep percolation into soil layers.",
       baseline_assumptions: [
-        "Equipped with overflow bypass drains for 100-year storm safety.",
+        "District model assumes standard 50-hectare planning area.",
         "Vegetated with hydrophilic native shrubs and perennials."
       ]
     },
@@ -321,7 +329,7 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
       direct_applicability:
         "Simultaneously increases vegetative biomass (LPD), restores soil organic matter (SOC), and replaces artificial surfaces.",
       trends_earth_verification:
-        "Triple-benefit land restoration under UNCCD Trends.Earth 1OAO scoring."
+        "Triple-benefit land restoration under UNCCD Trends.Earth scoring."
     },
     citations: [CITATIONS.invest_flood_risk, CITATIONS.us_epa_green_infrastructure, CITATIONS.unccd_trends_earth],
     drawer_markdown: `### Bioswales & Rain Gardens
@@ -329,9 +337,9 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
 > **Key Takeaway:** Curbside rain gardens filter and swallow heavy stormwater before it reaches storm sewers.
 
 #### Key Mechanics:
-- **Curve Number:** $CN = 55$ (Superior natural sponge)
-- **Soil Retention:** Absorbs up to $207\\text{ mm}$ of potential rainfall depth.
-- **Triple UNCCD Benefit:** Improves vegetative cover, plant productivity, and soil carbon.
+- **Unit Cost:** $6,500 per 1% district conversion ($13,000/ha in a 50-ha district).
+- **Land Transition:** 80% Built-up + 20% Bare Soil $\\rightarrow$ 60% Shrubland (Class 20) + 40% Grassland (Class 30).
+- **Runoff Absorption:** Replaces impervious asphalt ($CN=98$) with bioretention soils ($CN=65\\text{--}68$).
 
 *Source: US EPA & Stanford InVEST.*`
   },
@@ -346,20 +354,21 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
       "Green roofs replace hot gravel and tar on top of flat buildings with drought-tolerant succulent plants (sedum). They keep buildings cooler inside, reduce air conditioning strain, and absorb rain before it reaches street gutters.",
     scientific_details: {
       core_equations: [
-        "Effective Albedo boost: 0.12 (tar/gravel) -> 0.25 (sedum/soil)",
-        "ET_r Index: 0.70",
-        "Roof Runoff Retention: Retains 40-60% of precipitation volume"
+        "Albedo boost: +0.05 solar reflectance delta",
+        "Land Cover Transition: Built-up Class 50 (-1.0%) -> Grassland Class 30 (+1.0%)",
+        "ET_r Index: 0.70"
       ],
       key_coefficients: {
-        "Unit Cost": "$30,000 per 1% neighborhood conversion",
+        "Unit Cost": "$12,000 per 1% neighborhood conversion ($24,000/ha for a 50-ha district)",
+        "Conversion Budget Formula": "Conversion % = Budget ($) / $12,000; Hectares = Conversion % * 0.50 ha",
         "Cooling Impact": "Moderate-High (Combined albedo + building insulation)",
-        "Runoff Impact": "Moderate (Immediate rooftop detention)"
+        "Runoff Impact": "Moderate (Immediate rooftop detention, CN 68)"
       },
       biophysical_mechanism:
         "Sedum and engineered growing media provide thermal mass and latent heat cooling via transpiration while delaying peak rooftop runoff timing.",
       baseline_assumptions: [
-        "Applied to commercial and multi-family flat roofs with sufficient structural load capacity.",
-        "Extensive green roof configuration (shallow substrate 8–15cm)."
+        "Applied to commercial and multi-family flat roofs.",
+        "District model assumes standard 50-hectare planning area."
       ]
     },
     un_sdg_connection: {
@@ -375,8 +384,9 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
 > **Key Takeaway:** Turns baking rooftops into gardens, cooling the building and stopping roof runoff.
 
 #### Performance:
-- **Albedo & Transpiration:** Boosts reflectivity and provides $ET_r = 0.70$.
-- **Thermal Shield:** Cuts indoor cooling demand and stops rooftops from re-radiating heat into the street.
+- **Unit Cost:** $12,000 per 1% district conversion ($24,000/ha in a 50-ha district).
+- **Albedo & Transpiration:** Adds $+0.05$ albedo boost and provides $ET_r = 0.70$.
+- **Hydrology:** Converts impervious roof ($CN=98$) to vegetative turf retention ($CN=68$).
 
 *Source: Solar Energy / Santamouris & InVEST.*`
   },
@@ -391,20 +401,21 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
       "Cool roofs use specially coated white paints or membranes that bounce over 70% of sunlight straight back into outer space. They are one of the cheapest, fastest ways to immediately drop neighborhood heat.",
     scientific_details: {
       core_equations: [
-        "Solar Reflectance (Albedo) shift: 0.12 (black asphalt) -> 0.72 (high-SR coating)",
-        "Thermal Emittance: >0.85",
-        "Surface Temperature Reduction: Up to 25°C cooler surface than dark roofs"
+        "Surface Albedo Boost: +0.35 solar reflectance boost across treated area",
+        "District Albedo Shift: Delta Albedo = 0.35 * (Treated Hectares / Total District Area)",
+        "Persistent State: Treated roof area persists across all remaining turns"
       ],
       key_coefficients: {
-        "Unit Cost": "$15,000 per 1% neighborhood conversion",
-        "Cooling Impact": "High Albedo Radiative Forcing",
-        "Runoff Impact": "Neutral (Surface remains impervious)"
+        "Unit Cost": "$4,500 per 1% neighborhood conversion ($9,000/ha for a 50-ha district)",
+        "Conversion Budget Formula": "Conversion % = Budget ($) / $4,500; Hectares = Conversion % * 0.50 ha",
+        "Cooling Impact": "Maximum Surface Albedo Boost (+0.35)",
+        "Runoff Impact": "Neutral (Surface remains sealed)"
       },
       biophysical_mechanism:
-        "High solar reflectance reflects ultraviolet, visible, and infrared wavelengths, while high thermal emittance releases any absorbed heat into the sky.",
+        "High solar reflectance reflects ultraviolet, visible, and infrared wavelengths, preventing dark roofs from heating adjacent air layers.",
       baseline_assumptions: [
-        "Targeted at industrial warehouses, retail centers, and flat municipal rooftops.",
-        "Maintenance entails periodic cleaning to maintain solar reflectance."
+        "District model assumes standard 50-hectare planning area.",
+        "Treated roofs retain high albedo throughout all 5 planning cycles."
       ]
     },
     un_sdg_connection: {
@@ -420,9 +431,9 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
 > **Key Takeaway:** High-albedo white roofs act like a giant mirror, bouncing solar heat back into space.
 
 #### Physics of Albedo:
-- **Standard Roof Albedo:** $0.12$ (soaks up 88% of solar heat)
-- **Cool Roof Albedo:** $0.72$ (reflects 72% of solar energy away)
-- **Cost Effectiveness:** Lowest cost per degree of temperature reduction.
+- **Unit Cost:** $4,500 per 1% district conversion ($9,000/ha in a 50-ha district).
+- **Albedo Boost:** $+0.35$ solar reflectance across retrofitted roofs.
+- **Persistence:** Retrofits persist into subsequent turns without decay.
 
 *Source: Climatic Change / Akbari et al. & Stanford InVEST.*`
   },
@@ -437,20 +448,21 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
       "Pocket parks take small vacant asphalt lots or oversized street corners and turn them into miniature neighborhood parks with shade trees, grass, and benches. They create an oasis of cool air and flood relief right where people live.",
     scientific_details: {
       core_equations: [
-        "Land Cover Transition: Built-up 50 -> Tree Cover 10 (40%) + Grassland 30 (60%)",
-        "Composite CN: 68",
-        "Composite ET_r: 0.80"
+        "Land Cover Transition: Built-up Class 50 (-1.0%) -> Grassland Class 30 (+0.5%) + Tree Canopy Class 10 (+0.5%)",
+        "Hydrologic Curve Number: Blend of CN 68 (grass) and CN 55 (trees)",
+        "Composite ET_r: 0.85"
       ],
       key_coefficients: {
-        "Unit Cost": "$22,000 per 1% neighborhood conversion",
-        "Cooling Impact": "High",
-        "Runoff Impact": "High",
+        "Unit Cost": "$9,500 per 1% neighborhood conversion ($19,000/ha for a 50-ha district)",
+        "Conversion Budget Formula": "Conversion % = Budget ($) / $9,500; Hectares = Conversion % * 0.50 ha",
+        "Cooling Impact": "High (Dual canopy and turf evapotranspiration)",
+        "Runoff Impact": "High (De-paved soil infiltration)",
         "Social / Community Cheer": "Highest"
       },
       biophysical_mechanism:
         "Blends canopy microclimate moderation with open ground infiltration and active community green recreation.",
       baseline_assumptions: [
-        "Distributed evenly across dense, park-deficient residential blocks.",
+        "District model assumes standard 50-hectare planning area.",
         "Includes permeable walkways and native groundcover."
       ]
     },
@@ -467,9 +479,9 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
 > **Key Takeaway:** Small, neighborhood-scale parks deliver big results: they cool the block, absorb rain, and boost community happiness.
 
 #### Balanced Ecological Profile:
-- **Dual Conversion:** 40% Tree Canopy + 60% Grassland/Soil
-- **Evapotranspiration Index:** $ET_r = 0.80$
-- **Infiltration:** $CN = 68$
+- **Unit Cost:** $9,500 per 1% district conversion ($19,000/ha in a 50-ha district).
+- **Dual Conversion:** 50% Tree Canopy (Class 10) + 50% Grassland/Soil (Class 30).
+- **Curve Number:** Drops from $CN = 98$ (asphalt) to $CN \\approx 62$.
 
 *Source: UN SDG 11.7 & Stanford InVEST.*`
   }
