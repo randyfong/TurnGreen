@@ -51,7 +51,7 @@ export const SessionHistorySchema = z.object({
 export const GenerateYouthResolutionInputSchema = z.object({
     author_name: z.string().min(1).describe("Name of youth author or delegate"),
     district_name: z.string().min(1).describe("Name of target municipal district or neighborhood (e.g. 'District 4 - Eastside Basin')"),
-    organization_or_school: z.string().default("Youth Environmental Action Committee").describe("Youth organization, club, or school name"),
+    organization_or_school: z.string().optional().describe("Youth organization, club, or school name (optional)"),
     target_body: z.enum([
         "City Council",
         "School Board",

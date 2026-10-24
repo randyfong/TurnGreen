@@ -104,27 +104,32 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
   });
   const resNumber = `TG-${now.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  // Gracefully handle organization_or_school: if omitted, use the player/district context
+  const orgOrSchoolText = organization_or_school?.trim()
+    ? organization_or_school.trim()
+    : `Youth Climate Delegates of ${district_name}`;
+
   const whereasClauses = [
-    `urban heat islands and severe precipitation events disproportionately harm children, youth, and vulnerable working families within ${district_name};`,
+    `urban heat islands and severe precipitation events directly impact residents, youth, and neighborhood infrastructure within ${district_name};`,
     `empirical biophysical modeling through Stanford University's InVEST urban cooling engine demonstrates that expanding vegetative canopy and cool surfaces can lower local summer surface temperatures by ${scorecard.total_heat_reduction_display};`,
-    `excessive impervious surface coverage (ESA WorldCover Class 50) exacerbates street-level flash flooding, and bio-retention interventions have been scientifically verified by USDA-SCS Curve Number hydrology to capture over ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of stormwater runoff;`,
-    `youth leaders and students from ${organization_or_school} have completed rigorous 5-year simulation scenarios balancing municipal fiscal constraints with climate resilience outcomes under UN SDG 15.3.1 standards.`
+    `impervious surface coverage (ESA WorldCover Class 50) exacerbates street-level runoff, and bio-retention interventions modeled by USDA-SCS Curve Number hydrology divert up to ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of runoff during a severe design storm;`,
+    `the 5-year simulation scenario completed by ${author_name} (${orgOrSchoolText}) models verified land cover transitions aligning with UN SDG 15.3.1 Land Degradation Neutrality targets within a $${totalSpend.toLocaleString()} municipal budget.`
   ];
 
   const resolvedClauses = [
-    `the ${target_body} shall formally adopt a target to de-pave and convert a minimum of ${scorecard.total_depaved_ha.toFixed(1)} hectares of obsolete impervious surfaces into functional tree canopy and bioswales across ${district_name};`,
-    `municipal planning authorities shall mandate that all future sidewalk and transit shelter capital improvements incorporate shade canopy and permeable bioswales;`,
-    `the ${target_body} establishes a permanent Youth Climate Advisory Seat to review annual infrastructure spending and track local progress toward Land Degradation Neutrality.`
+    `the ${target_body} shall formally adopt a natural infrastructure target to de-pave a minimum of ${scorecard.ground_depaved_ha.toFixed(1)} hectares of impervious ground and retrofit ${scorecard.rooftop_treated_ha.toFixed(1)} hectares of rooftop area across ${district_name};`,
+    `municipal capital improvement authorities shall prioritize nature-based solutions, including shade canopy corridors and roadside bioswales, in future roadway and sidewalk projects;`,
+    `the ${target_body} establishes a permanent Youth Climate Advisory Seat to review annual infrastructure investments and track local progress toward climate resilience.`
   ];
 
   const executiveSummary =
-    `This policy resolution represents a student-led, scientifically verified climate adaptation mandate for ${district_name}. Developed by ${author_name} and the ${organization_or_school} using the TurnGreen simulation engine, this mandate demonstrates how $${totalSpend.toLocaleString()} in strategic investments across 5 strategic planning turns successfully mitigates neighborhood heat by ${scorecard.total_heat_reduction_display} and retains ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of floodwaters while satisfying UN SDG 15.3.1 land degradation neutrality targets.`;
+    `This policy resolution presents a youth-led, evidence-based climate resilience mandate for ${district_name}. Prepared by ${author_name} (${orgOrSchoolText}) using the TurnGreen simulation engine, this proposal demonstrates how $${totalSpend.toLocaleString()} invested across 5 planning turns achieves ${scorecard.total_heat_reduction_display} in surface cooling, diverts ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of runoff during design storm events, and converts ${scorecard.ground_depaved_ha.toFixed(2)} hectares of impervious surfaces to functional green space under UN SDG 15.3.1 standards.`;
 
   const docBase = {
     resolution_number: resNumber,
     title: `A Resolution Establishing the 5-Year Youth Climate Resilience & Natural Infrastructure Mandate for ${district_name}`,
     author_name,
-    organization_or_school,
+    organization_or_school: orgOrSchoolText,
     district_name,
     target_body,
     date_formatted: dateFormatted,

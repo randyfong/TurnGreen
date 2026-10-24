@@ -272,7 +272,7 @@ export type SessionHistory = z.infer<typeof SessionHistorySchema>;
 export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
     author_name: z.ZodString;
     district_name: z.ZodString;
-    organization_or_school: z.ZodDefault<z.ZodString>;
+    organization_or_school: z.ZodOptional<z.ZodString>;
     target_body: z.ZodDefault<z.ZodEnum<["City Council", "School Board", "Planning Commission", "County Board of Supervisors", "Parks & Recreation Commission"]>>;
     session_history: z.ZodObject<{
         session_id: z.ZodOptional<z.ZodString>;
@@ -456,7 +456,6 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     author_name: string;
     district_name: string;
-    organization_or_school: string;
     target_body: "City Council" | "School Board" | "Planning Commission" | "County Board of Supervisors" | "Parks & Recreation Commission";
     session_history: {
         turns: {
@@ -497,6 +496,7 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             summary?: string | undefined;
         } | undefined;
     };
+    organization_or_school?: string | undefined;
 }, {
     author_name: string;
     district_name: string;

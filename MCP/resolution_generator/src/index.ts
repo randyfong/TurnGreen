@@ -28,8 +28,7 @@ const GENERATE_YOUTH_RESOLUTION_TOOL: Tool = {
       },
       organization_or_school: {
         type: "string",
-        description: "School, youth climate council, or community organization name (optional)",
-        default: "Youth Environmental Action Committee"
+        description: "School, youth climate council, or community organization name (optional; defaults to author and district delegation)"
       },
       target_body: {
         type: "string",

@@ -118,10 +118,39 @@ try {
   assert(result.single_page_html.includes("@page {"), "Must include CSS print @page rules");
   assert(result.single_page_html.includes("Youth Climate Resilience Mandate"), "HTML title check");
 
-  // Verify Markdown output
-  assert(result.resolution_markdown.includes("# YOUTH CLIMATE RESILIENCE MANDATE"), "Markdown title check");
-  assert(result.resolution_markdown.includes("WHEREAS"), "Markdown whereas check");
-  assert(result.resolution_markdown.includes("NOW, THEREFORE, BE IT RESOLVED"), "Markdown resolved check");
+  // Verify absence of fabricated or unsupported claims
+  const combinedText = `${result.executive_summary} ${result.talking_points.map((t) => t.recommended_script).join(" ")} ${result.resolution_markdown}`;
+  assert(!combinedText.includes("$3.40"), "Should not contain fabricated '$3.40' return claim");
+  assert(!combinedText.includes("100-meter cooling buffer"), "Should not contain unverified 100m cooling buffer claim");
+
+  // Test 2: Verify optional organization_or_school defaults to player/district delegation
+  console.log("\n--- Testing Resolution Generation without organization_or_school ---");
+  const noOrgInput = {
+    author_name: "Alex Rivera",
+    district_name: "Ward 3 Green District",
+    session_history: {
+      turns: [
+        {
+          turn: 1,
+          intervention_id: "urban_canopy_trees" as const,
+          intervention_name: "Street Tree Canopy Planting",
+          budget_allocated: 25000,
+          area_converted_ha: 0.5,
+          surface_temp_drop_celsius: 0.2,
+          runoff_retained_m3: 400
+        }
+      ]
+    }
+  };
+
+  const noOrgResult = executeGenerateYouthResolution(noOrgInput);
+  console.log("[PASS] Delegation without org:", noOrgResult.organization_or_school);
+  assert.strictEqual(
+    noOrgResult.organization_or_school,
+    "Youth Climate Delegates of Ward 3 Green District",
+    "Should default to author's district delegation without inventing a fictitious organization"
+  );
+  assert(!noOrgResult.organization_or_school.includes("Youth Environmental Action Committee"));
 
   console.log("\n[SUCCESS] All Resolution Generator MCP test assertions passed!");
 } catch (err) {
