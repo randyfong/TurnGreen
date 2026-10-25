@@ -733,9 +733,17 @@ export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResu
     baselineRunoffMm = priorFlood.direct_runoff_mm;
   }
 
-  const runoffReductionDepthMm = Math.max(0, Number((baselineRunoffMm - postFlood.direct_runoff_mm).toFixed(2)));
+  // Calculate Turn 0 baseline retained water vs current year improvement
+  const baseFloodRisk = current_state.baseline_land_cover
+    ? calculateInVESTFloodRisk(current_state.baseline_land_cover, current_state.total_area_hectares)
+    : priorFlood;
+  const baselineStormwaterRetainedM3 = baseFloodRisk.stormwater_retained_m3;
+  const cumulativeRetainedImprovementM3 = Number(Math.max(0, postFlood.stormwater_retained_m3 - baselineStormwaterRetainedM3).toFixed(1));
+
+  // Incremental runoff reduction caused specifically by this year's executed projects
+  const yearRunoffReductionDepthMm = Math.max(0, Number((priorFlood.direct_runoff_mm - postFlood.direct_runoff_mm).toFixed(2)));
   const totalAreaM2 = current_state.total_area_hectares * 10000;
-  const incrementalRunoffReductionM3 = Number(((runoffReductionDepthMm / 1000) * totalAreaM2).toFixed(1));
+  const annualPlanIncrementalRunoffReductionM3 = Number(((yearRunoffReductionDepthMm / 1000) * totalAreaM2).toFixed(1));
 
   // Cumulative ESA shifts
   const cumulativeEsaShifts: Record<string, { prior_pct: number; post_pct: number; delta_pct: number }> = {};
@@ -839,6 +847,7 @@ export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResu
         hmi_delta: Number((postCooling.heat_mitigation_index - priorCooling.heat_mitigation_index).toFixed(4)),
         surface_temp_drop_celsius: Number(deltaTempC.toFixed(2)),
         surface_temp_drop_fahrenheit: Number((deltaTempC * 1.8).toFixed(2)),
+        annual_plan_temp_drop_celsius: Number(deltaTempC.toFixed(2)),
         effective_albedo: {
           prior: priorCooling.effective_albedo,
           post: postCooling.effective_albedo
@@ -860,8 +869,11 @@ export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResu
         prior_runoff_mm: priorFlood.direct_runoff_mm,
         post_runoff_mm: postFlood.direct_runoff_mm,
         retained_runoff_depth_mm: postFlood.retained_water_depth_mm,
+        design_storm_total_retained_m3: postFlood.stormwater_retained_m3,
+        cumulative_retained_improvement_m3: cumulativeRetainedImprovementM3,
+        annual_plan_incremental_runoff_reduction_m3: annualPlanIncrementalRunoffReductionM3,
         stormwater_retained_m3: postFlood.stormwater_retained_m3,
-        incremental_runoff_reduction_m3: incrementalRunoffReductionM3,
+        incremental_runoff_reduction_m3: annualPlanIncrementalRunoffReductionM3,
         retention_efficiency_pct: postFlood.retention_efficiency_pct
       },
       dry_season_impact: {

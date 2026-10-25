@@ -270,6 +270,7 @@ export interface YearPlanSimulationResult {
       hmi_delta: number;
       surface_temp_drop_celsius: number;
       surface_temp_drop_fahrenheit: number;
+      annual_plan_temp_drop_celsius: number; // Cooling temperature drop achieved specifically by this full yearly plan
       effective_albedo: { prior: number; post: number };
       vegetation_fraction: { prior: number; post: number };
       et_index: { prior: number; post: number };
@@ -282,8 +283,11 @@ export interface YearPlanSimulationResult {
       prior_runoff_mm: number;
       post_runoff_mm: number;
       retained_runoff_depth_mm: number;
-      stormwater_retained_m3: number;
-      incremental_runoff_reduction_m3: number;
+      design_storm_total_retained_m3: number; // Total stormwater retained across the entire neighborhood after the plan
+      cumulative_retained_improvement_m3: number; // Improvement in retained stormwater compared with the original Turn 0 village baseline
+      annual_plan_incremental_runoff_reduction_m3: number; // Incremental avoided runoff reduction caused specifically by this year's executed projects
+      stormwater_retained_m3: number; // Total stormwater retained in m³ (alias for design_storm_total_retained_m3)
+      incremental_runoff_reduction_m3: number; // Incremental stormwater runoff reduction in m³ (alias for annual_plan_incremental_runoff_reduction_m3)
       retention_efficiency_pct: number;
     };
     dry_season_impact?: {
@@ -296,6 +300,9 @@ export interface YearPlanSimulationResult {
       drought_retention_pct: number;
       sponge_capacity_description: string;
     };
+    /**
+     * Snapshots representing intermediate state progression. Do not sum these values together.
+     */
     intermediate_steps?: Array<{
       intervention_id: InterventionType;
       area_converted_hectares: number;

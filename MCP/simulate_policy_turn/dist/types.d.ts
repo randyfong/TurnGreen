@@ -542,6 +542,7 @@ export interface YearPlanSimulationResult {
             hmi_delta: number;
             surface_temp_drop_celsius: number;
             surface_temp_drop_fahrenheit: number;
+            annual_plan_temp_drop_celsius: number;
             effective_albedo: {
                 prior: number;
                 post: number;
@@ -563,6 +564,9 @@ export interface YearPlanSimulationResult {
             prior_runoff_mm: number;
             post_runoff_mm: number;
             retained_runoff_depth_mm: number;
+            design_storm_total_retained_m3: number;
+            cumulative_retained_improvement_m3: number;
+            annual_plan_incremental_runoff_reduction_m3: number;
             stormwater_retained_m3: number;
             incremental_runoff_reduction_m3: number;
             retention_efficiency_pct: number;
@@ -577,6 +581,9 @@ export interface YearPlanSimulationResult {
             drought_retention_pct: number;
             sponge_capacity_description: string;
         };
+        /**
+         * Snapshots representing intermediate state progression. Do not sum these values together.
+         */
         intermediate_steps?: Array<{
             intervention_id: InterventionType;
             area_converted_hectares: number;
