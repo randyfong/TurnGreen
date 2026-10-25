@@ -224,6 +224,7 @@ export declare const YearPlanProjectSchema: z.ZodObject<{
 export type YearPlanProject = z.infer<typeof YearPlanProjectSchema>;
 export declare const YearPlanInputSchema: z.ZodObject<{
     year: z.ZodOptional<z.ZodNumber>;
+    max_annual_budget: z.ZodOptional<z.ZodNumber>;
     projects: z.ZodArray<z.ZodObject<{
         intervention_id: z.ZodEnum<["green_roofs", "pocket_parks", "urban_canopy_trees", "permeable_pavement", "bioswales", "cool_roofs"]>;
         budget_allocated: z.ZodNumber;
@@ -374,6 +375,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
         project_name?: string | undefined;
     }[];
     year?: number | undefined;
+    max_annual_budget?: number | undefined;
 }, {
     current_state: {
         land_cover: {
@@ -406,6 +408,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
         project_name?: string | undefined;
     }[];
     year?: number | undefined;
+    max_annual_budget?: number | undefined;
 }>;
 export type YearPlanInput = z.infer<typeof YearPlanInputSchema>;
 export interface SimulationResult {

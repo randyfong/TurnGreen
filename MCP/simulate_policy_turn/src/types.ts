@@ -109,6 +109,7 @@ export type YearPlanProject = z.infer<typeof YearPlanProjectSchema>;
 
 export const YearPlanInputSchema = z.object({
   year: z.number().int().min(1).max(5).optional().describe("Optional year or turn identifier (1 to 5)"),
+  max_annual_budget: z.number().positive().optional().describe("Optional annual budget ceiling for this plan in coins or USD"),
   projects: z.array(YearPlanProjectSchema).min(1).describe("List of interventions to execute within the year plan"),
   current_state: z.object({
     total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),

@@ -114,6 +114,11 @@ const SIMULATE_YEAR_PLAN_TOOL = {
                 maximum: 5,
                 description: "Optional year or turn identifier (1 to 5)"
             },
+            max_annual_budget: {
+                type: "number",
+                minimum: 1,
+                description: "Optional annual budget ceiling for this plan in coins or USD"
+            },
             projects: {
                 type: "array",
                 description: "List of urban policy interventions to execute in this year plan",
@@ -449,13 +454,16 @@ export function applyAnnualDrySeason(workingLandCover, options) {
 }
 export function executeYearPlanSimulation(args) {
     const parsed = YearPlanInputSchema.parse(args);
-    const { year, projects, current_state } = parsed;
+    const { year, max_annual_budget, projects, current_state } = parsed;
     // 1. Budget Validation: Verify sum of all budget_allocated across projects does not exceed remaining_budget
     const budgetCurrency = current_state.budget_currency ?? (current_state.remaining_budget > 500 ? "usd" : "coins");
     const currencySymbol = budgetCurrency === "coins" ? "🪙" : "$";
     const totalRequestedBudget = projects.reduce((acc, p) => acc + p.budget_allocated, 0);
     if (totalRequestedBudget > current_state.remaining_budget) {
         throw new Error(`Budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds remaining budget (${currencySymbol}${current_state.remaining_budget.toLocaleString()}).`);
+    }
+    if (max_annual_budget !== undefined && totalRequestedBudget > max_annual_budget) {
+        throw new Error(`Annual budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds maximum annual budget limit (${currencySymbol}${max_annual_budget.toLocaleString()}).`);
     }
     // Baseline copies
     const initialLandCover = { ...current_state.land_cover };

@@ -239,6 +239,28 @@ assert.deepStrictEqual(
   preExecutionState,
   "Current state must remain completely unaltered when year plan simulation fails (atomic guarantee)"
 );
-console.log("✓ State immutability & atomic failure verified: input state was not mutated by partial execution.");
+// Test 9: Annual Budget Validation (max_annual_budget)
+console.log("\n[Test 9] Validating Annual Budget Validation (max_annual_budget)...");
+let annualBudgetThrown = false;
+try {
+  executeYearPlanSimulation({
+    year: 1,
+    max_annual_budget: 30,
+    projects: [
+      { intervention_id: "pocket_parks", budget_allocated: 20 },
+      { intervention_id: "urban_canopy_trees", budget_allocated: 15 }
+    ],
+    current_state: coinNeighborhoodState // remaining_budget is 100, but max_annual_budget is 30
+  });
+} catch (err: unknown) {
+  annualBudgetThrown = true;
+  assert.ok(
+    (err as Error).message.includes("Annual budget validation failed"),
+    `Expected Annual budget validation error, got: ${(err as Error).message}`
+  );
+  console.log("✓ Annual budget validation error caught:", (err as Error).message);
+}
+assert.ok(annualBudgetThrown, "executeYearPlanSimulation must reject requests exceeding max_annual_budget");
 
 console.log("\n🎉 ALL SIMULATE_YEAR_PLAN UNIT TESTS PASSED! 🎉\n");
+
