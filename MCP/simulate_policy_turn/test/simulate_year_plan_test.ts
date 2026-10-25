@@ -140,4 +140,105 @@ assert.ok(scorecardDry.temperature_under_dry_heat_display.includes("°C"));
 
 console.log("✓ Annual dry season biophysical dynamics & scorecard verified!");
 
+// Test 6: 100-Coin Limit Rejection when Projects Total > 100 Coins
+console.log("\n[Test 6] Validating 100-Coin Limit Rejection when projects total > 100 coins...");
+const coinNeighborhoodState: NeighborhoodState = {
+  total_area_hectares: 50,
+  remaining_budget: 100,
+  budget_currency: "coins",
+  roof_treatment_hectares: 0,
+  land_cover: { ...baselineState.land_cover }
+};
+
+const overCoinProjects: YearPlanProject[] = [
+  { intervention_id: "pocket_parks", budget_allocated: 60 },
+  { intervention_id: "green_roofs", budget_allocated: 45 } // Total: 105 coins > 100 coins
+];
+
+assert.throws(
+  () => {
+    executeYearPlanSimulation({
+      year: 1,
+      projects: overCoinProjects,
+      current_state: coinNeighborhoodState
+    });
+  },
+  (err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    return msg.includes("Budget validation failed") &&
+           msg.includes("🪙105") &&
+           msg.includes("🪙100");
+  },
+  "Should throw error rejecting year plan when total coins exceed 100 coins"
+);
+console.log("✓ 100-coin limit rejection verified: 🪙105 requested vs 🪙100 available correctly rejected.");
+
+// Test 7: Dry Season Runs Exactly Once Per Year Plan Execution
+console.log("\n[Test 7] Validating Dry Season runs exactly once per year plan execution...");
+// Execute a year plan with 3 distinct projects
+const threeProjectPlan: YearPlanProject[] = [
+  { intervention_id: "pocket_parks", budget_allocated: 30 },
+  { intervention_id: "urban_canopy_trees", budget_allocated: 24 },
+  { intervention_id: "cool_roofs", budget_allocated: 16 }
+];
+
+const threeProjectResult = executeYearPlanSimulation({
+  year: 1,
+  projects: threeProjectPlan,
+  current_state: coinNeighborhoodState
+});
+
+// Verify 3 projects executed and 3 intermediate steps were produced
+assert.strictEqual(threeProjectResult.projects_executed.length, 3, "Expected 3 projects executed");
+assert.strictEqual(threeProjectResult.science_payload.intermediate_steps?.length, 3, "Expected 3 intermediate science steps");
+
+// Intermediate steps model standard wet/design storm conditions and do NOT attach intermediate dry seasons
+for (const step of threeProjectResult.science_payload.intermediate_steps ?? []) {
+  assert.strictEqual((step as any).dry_season_impact, undefined, "Intermediate steps must not execute dry seasons");
+}
+
+// Exactly one macro dry_season_impact is populated at the annual plan level
+assert.ok(threeProjectResult.science_payload.dry_season_impact, "Annual science payload must have dry_season_impact");
+assert.ok(threeProjectResult.youth_scorecard.dry_season_impact, "Youth scorecard must have dry_season_impact");
+assert.strictEqual(
+  threeProjectResult.science_payload.dry_season_impact.drought_precipitation_mm,
+  10,
+  "Annual dry season must be evaluated at 10 mm drought baseline"
+);
+console.log("✓ Exactly one annual dry season cycle executed across all 3 projects in the year plan.");
+
+// Test 8: Atomic Rollback / Failure Verification when Any Intermediate Project Fails
+console.log("\n[Test 8] Validating Atomic Rollback / Failure when any project in year plan fails...");
+
+// Copy state before attempting failed plan
+const preExecutionState: NeighborhoodState = JSON.parse(JSON.stringify(coinNeighborhoodState));
+
+// Create a plan where project 1 is valid, but project 2 is invalid or exceeds bounds
+const failingProjects = [
+  { intervention_id: "pocket_parks", budget_allocated: 20 },
+  { intervention_id: "invalid_intervention_id" as any, budget_allocated: 20 }
+];
+
+let failureThrown = false;
+try {
+  executeYearPlanSimulation({
+    year: 1,
+    projects: failingProjects,
+    current_state: coinNeighborhoodState
+  });
+} catch (err: unknown) {
+  failureThrown = true;
+  console.log("✓ Error successfully caught during year plan execution:", (err as Error).message);
+}
+
+assert.ok(failureThrown, "executeYearPlanSimulation must throw an error when an intermediate project is invalid");
+
+// Verify that the caller's neighborhood state was untouched / not partially mutated
+assert.deepStrictEqual(
+  coinNeighborhoodState,
+  preExecutionState,
+  "Current state must remain completely unaltered when year plan simulation fails (atomic guarantee)"
+);
+console.log("✓ State immutability & atomic failure verified: input state was not mutated by partial execution.");
+
 console.log("\n🎉 ALL SIMULATE_YEAR_PLAN UNIT TESTS PASSED! 🎉\n");

@@ -638,6 +638,7 @@ export function executeYearPlanSimulation(args) {
     const nextState = {
         total_area_hectares: current_state.total_area_hectares,
         remaining_budget: remainingBudget,
+        budget_currency: budgetCurrency,
         roof_treatment_hectares: Number(workingRoofTreatmentHa.toFixed(2)),
         baseline_runoff_mm: baselineRunoffMm,
         baseline_land_cover: baselineLandCover,
