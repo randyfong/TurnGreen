@@ -95,6 +95,11 @@ const GENERATE_YOUTH_RESOLUTION_TOOL: Tool = {
               baseline_runoff_reduction_m3: { type: "number" },
               net_stormwater_retained_gallons: { type: "number" },
               total_area_converted_ha: { type: "number" },
+              net_built_up_reduced_ha: { type: "number" },
+              ground_depaved_ha: { type: "number" },
+              total_ground_interventions_ha: { type: "number" },
+              bare_soil_vegetated_ha: { type: "number" },
+              rooftop_treated_ha: { type: "number" },
               overall_sustainability_score: { type: "number" },
               community_cheer_score: { type: "number" }
             }
