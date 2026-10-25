@@ -1,6 +1,8 @@
 import { z } from "zod";
 export declare const TurnRecordSchema: z.ZodObject<{
-    turn: z.ZodNumber;
+    turn: z.ZodOptional<z.ZodNumber>;
+    project_id: z.ZodOptional<z.ZodString>;
+    project_name: z.ZodOptional<z.ZodString>;
     intervention_id: z.ZodEnum<["green_roofs", "pocket_parks", "urban_canopy_trees", "permeable_pavement", "bioswales", "cool_roofs"]>;
     intervention_name: z.ZodString;
     budget_allocated: z.ZodNumber;
@@ -9,19 +11,23 @@ export declare const TurnRecordSchema: z.ZodObject<{
     runoff_retained_m3: z.ZodOptional<z.ZodNumber>;
     esa_conversions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
-    turn: number;
     intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
     intervention_name: string;
     budget_allocated: number;
+    turn?: number | undefined;
+    project_id?: string | undefined;
+    project_name?: string | undefined;
     area_converted_ha?: number | undefined;
     surface_temp_drop_celsius?: number | undefined;
     runoff_retained_m3?: number | undefined;
     esa_conversions?: Record<string, number> | undefined;
 }, {
-    turn: number;
     intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
     intervention_name: string;
     budget_allocated: number;
+    turn?: number | undefined;
+    project_id?: string | undefined;
+    project_name?: string | undefined;
     area_converted_ha?: number | undefined;
     surface_temp_drop_celsius?: number | undefined;
     runoff_retained_m3?: number | undefined;
@@ -107,7 +113,9 @@ export type CumulativeMetrics = z.infer<typeof CumulativeMetricsSchema>;
 export declare const SessionHistorySchema: z.ZodObject<{
     session_id: z.ZodOptional<z.ZodString>;
     turns: z.ZodArray<z.ZodObject<{
-        turn: z.ZodNumber;
+        turn: z.ZodOptional<z.ZodNumber>;
+        project_id: z.ZodOptional<z.ZodString>;
+        project_name: z.ZodOptional<z.ZodString>;
         intervention_id: z.ZodEnum<["green_roofs", "pocket_parks", "urban_canopy_trees", "permeable_pavement", "bioswales", "cool_roofs"]>;
         intervention_name: z.ZodString;
         budget_allocated: z.ZodNumber;
@@ -116,19 +124,23 @@ export declare const SessionHistorySchema: z.ZodObject<{
         runoff_retained_m3: z.ZodOptional<z.ZodNumber>;
         esa_conversions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodNumber>>;
     }, "strip", z.ZodTypeAny, {
-        turn: number;
         intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
         intervention_name: string;
         budget_allocated: number;
+        turn?: number | undefined;
+        project_id?: string | undefined;
+        project_name?: string | undefined;
         area_converted_ha?: number | undefined;
         surface_temp_drop_celsius?: number | undefined;
         runoff_retained_m3?: number | undefined;
         esa_conversions?: Record<string, number> | undefined;
     }, {
-        turn: number;
         intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
         intervention_name: string;
         budget_allocated: number;
+        turn?: number | undefined;
+        project_id?: string | undefined;
+        project_name?: string | undefined;
         area_converted_ha?: number | undefined;
         surface_temp_drop_celsius?: number | undefined;
         runoff_retained_m3?: number | undefined;
@@ -223,10 +235,12 @@ export declare const SessionHistorySchema: z.ZodObject<{
     }>>;
 }, "strip", z.ZodTypeAny, {
     turns: {
-        turn: number;
         intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
         intervention_name: string;
         budget_allocated: number;
+        turn?: number | undefined;
+        project_id?: string | undefined;
+        project_name?: string | undefined;
         area_converted_ha?: number | undefined;
         surface_temp_drop_celsius?: number | undefined;
         runoff_retained_m3?: number | undefined;
@@ -266,10 +280,12 @@ export declare const SessionHistorySchema: z.ZodObject<{
     } | undefined;
 }, {
     turns: {
-        turn: number;
         intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
         intervention_name: string;
         budget_allocated: number;
+        turn?: number | undefined;
+        project_id?: string | undefined;
+        project_name?: string | undefined;
         area_converted_ha?: number | undefined;
         surface_temp_drop_celsius?: number | undefined;
         runoff_retained_m3?: number | undefined;
@@ -317,7 +333,9 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
     session_history: z.ZodObject<{
         session_id: z.ZodOptional<z.ZodString>;
         turns: z.ZodArray<z.ZodObject<{
-            turn: z.ZodNumber;
+            turn: z.ZodOptional<z.ZodNumber>;
+            project_id: z.ZodOptional<z.ZodString>;
+            project_name: z.ZodOptional<z.ZodString>;
             intervention_id: z.ZodEnum<["green_roofs", "pocket_parks", "urban_canopy_trees", "permeable_pavement", "bioswales", "cool_roofs"]>;
             intervention_name: z.ZodString;
             budget_allocated: z.ZodNumber;
@@ -326,19 +344,23 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             runoff_retained_m3: z.ZodOptional<z.ZodNumber>;
             esa_conversions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodNumber>>;
         }, "strip", z.ZodTypeAny, {
-            turn: number;
             intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
             intervention_name: string;
             budget_allocated: number;
+            turn?: number | undefined;
+            project_id?: string | undefined;
+            project_name?: string | undefined;
             area_converted_ha?: number | undefined;
             surface_temp_drop_celsius?: number | undefined;
             runoff_retained_m3?: number | undefined;
             esa_conversions?: Record<string, number> | undefined;
         }, {
-            turn: number;
             intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
             intervention_name: string;
             budget_allocated: number;
+            turn?: number | undefined;
+            project_id?: string | undefined;
+            project_name?: string | undefined;
             area_converted_ha?: number | undefined;
             surface_temp_drop_celsius?: number | undefined;
             runoff_retained_m3?: number | undefined;
@@ -433,10 +455,12 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
         }>>;
     }, "strip", z.ZodTypeAny, {
         turns: {
-            turn: number;
             intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
             intervention_name: string;
             budget_allocated: number;
+            turn?: number | undefined;
+            project_id?: string | undefined;
+            project_name?: string | undefined;
             area_converted_ha?: number | undefined;
             surface_temp_drop_celsius?: number | undefined;
             runoff_retained_m3?: number | undefined;
@@ -476,10 +500,12 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
         } | undefined;
     }, {
         turns: {
-            turn: number;
             intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
             intervention_name: string;
             budget_allocated: number;
+            turn?: number | undefined;
+            project_id?: string | undefined;
+            project_name?: string | undefined;
             area_converted_ha?: number | undefined;
             surface_temp_drop_celsius?: number | undefined;
             runoff_retained_m3?: number | undefined;
@@ -524,10 +550,12 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
     target_body: "City Council" | "School Board" | "Planning Commission" | "County Board of Supervisors" | "Parks & Recreation Commission";
     session_history: {
         turns: {
-            turn: number;
             intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
             intervention_name: string;
             budget_allocated: number;
+            turn?: number | undefined;
+            project_id?: string | undefined;
+            project_name?: string | undefined;
             area_converted_ha?: number | undefined;
             surface_temp_drop_celsius?: number | undefined;
             runoff_retained_m3?: number | undefined;
@@ -572,10 +600,12 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
     district_name: string;
     session_history: {
         turns: {
-            turn: number;
             intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
             intervention_name: string;
             budget_allocated: number;
+            turn?: number | undefined;
+            project_id?: string | undefined;
+            project_name?: string | undefined;
             area_converted_ha?: number | undefined;
             surface_temp_drop_celsius?: number | undefined;
             runoff_retained_m3?: number | undefined;

@@ -43,7 +43,9 @@ const GENERATE_YOUTH_RESOLUTION_TOOL = {
                         items: {
                             type: "object",
                             properties: {
-                                turn: { type: "integer", minimum: 1, maximum: 5 },
+                                turn: { type: "integer", minimum: 1 },
+                                project_id: { type: "string" },
+                                project_name: { type: "string" },
                                 intervention_id: {
                                     type: "string",
                                     enum: [
@@ -61,7 +63,7 @@ const GENERATE_YOUTH_RESOLUTION_TOOL = {
                                 surface_temp_drop_celsius: { type: "number" },
                                 runoff_retained_m3: { type: "number" }
                             },
-                            required: ["turn", "intervention_id", "intervention_name", "budget_allocated"]
+                            required: ["intervention_id", "intervention_name", "budget_allocated"]
                         }
                     },
                     baseline: {

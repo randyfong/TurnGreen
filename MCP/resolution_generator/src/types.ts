@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 export const TurnRecordSchema = z.object({
-  turn: z.number().int().min(1).max(5).describe("Turn number (1 to 5)"),
+  turn: z.number().int().min(1).optional().describe("Turn or planning cycle number (1 to 5)"),
+  project_id: z.string().optional().describe("Unique identifier for this project within the plan"),
+  project_name: z.string().optional().describe("Custom project name"),
   intervention_id: z.enum([
     "green_roofs",
     "pocket_parks",
