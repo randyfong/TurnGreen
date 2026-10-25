@@ -483,7 +483,10 @@ export class TurnGreenClientSession {
    * Calls simulate_year_plan via MCP response contract.
    * Records individual project sub-records into turnsPlayed so resolution_generator receives all project actions.
    */
-  public playYearPlan(projects: YearPlanProject[], options?: { year?: number }): YearPlanSimulationResult {
+  public playYearPlan(
+    projects: YearPlanProject[],
+    options?: { year?: number; annual_budget_limit?: number }
+  ): YearPlanSimulationResult {
     if (!Array.isArray(projects) || projects.length === 0) {
       throw new ValidationError(
         "Pre-Flight Validation failed: projects must be a non-empty array of interventions.",
@@ -516,11 +519,26 @@ export class TurnGreenClientSession {
       }
     );
 
+    // Annual Budget Limit Pre-Flight Check:
+    // Reject before dispatching if totalBatchBudget exceeds specified annual_budget_limit
+    if (options?.annual_budget_limit !== undefined && totalBatchBudget > options.annual_budget_limit) {
+      throw new ValidationError(
+        `Pre-Flight Validation failed: Total batch budget (${sym}${totalBatchBudget.toLocaleString()}) exceeds annual budget limit (${sym}${options.annual_budget_limit.toLocaleString()}).`,
+        "budget_allocated",
+        {
+          totalBatchBudget,
+          annual_budget_limit: options.annual_budget_limit,
+          deficit: totalBatchBudget - options.annual_budget_limit
+        }
+      );
+    }
+
     // Call simulate_year_plan MCP engine wrapped in response contract
     const planResult = wrapMCPToolCallSync<YearPlanSimulationResult>(() => {
       try {
         const payload = executeYearPlanSimulation({
           year: yearNumber,
+          max_annual_budget: options?.annual_budget_limit,
           projects,
           current_state: this.currentState
         });

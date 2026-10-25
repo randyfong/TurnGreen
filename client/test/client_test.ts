@@ -412,7 +412,31 @@ function runClientTests() {
     "Turn 1 dry season score must match Year 1 annual record"
   );
 
-  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET, DRY-SEASON METRICS) PASSED! 🎉\n");
+  // Test 13: Client-Side Annual Budget Pre-Flight Check (annual_budget_limit)
+  console.log("\n[Test 13] Annual Budget Pre-Flight Check (annual_budget_limit)...");
+  const annualLimitSession = new TurnGreenClientSession({ initial_coins: 100, budget_currency: "coins" });
+  let annualLimitCaught = false;
+  try {
+    annualLimitSession.playYearPlan(
+      [
+        { intervention_id: "pocket_parks", budget_allocated: 20 },
+        { intervention_id: "urban_canopy_trees", budget_allocated: 15 }
+      ],
+      { year: 1, annual_budget_limit: 25 } // 35 requested vs 25 annual limit (even though 100 available)
+    );
+  } catch (err: unknown) {
+    if (err instanceof ValidationError) {
+      annualLimitCaught = true;
+      console.log("✓ Annual budget pre-flight rejection caught:", err.message);
+      console.assert(
+        err.message.includes("exceeds annual budget limit (🪙25)"),
+        "Error message should mention annual budget limit"
+      );
+    }
+  }
+  console.assert(annualLimitCaught, "playYearPlan must reject batch plans exceeding annual_budget_limit before dispatch");
+
+  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET, DRY-SEASON METRICS, ANNUAL BUDGET) PASSED! 🎉\n");
 }
 
 runClientTests();
