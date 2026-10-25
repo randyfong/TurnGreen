@@ -79,3 +79,12 @@ export const YearPlanInputSchema = z.object({
         }).describe("Baseline ESA WorldCover percentages summing to 100")
     }).describe("Stateless neighborhood and budget state passed into the year plan")
 });
+export class SimulationPlanError extends Error {
+    detail;
+    constructor(detail) {
+        super(detail.message);
+        this.name = "SimulationPlanError";
+        this.detail = detail;
+        Object.setPrototypeOf(this, SimulationPlanError.prototype);
+    }
+}

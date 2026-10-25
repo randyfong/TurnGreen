@@ -421,6 +421,10 @@ export interface SimulationPlanErrorDetail {
     project_name?: string;
     message: string;
 }
+export declare class SimulationPlanError extends Error {
+    readonly detail: SimulationPlanErrorDetail;
+    constructor(detail: SimulationPlanErrorDetail);
+}
 export interface SimulationResult {
     turn: number;
     intervention: {

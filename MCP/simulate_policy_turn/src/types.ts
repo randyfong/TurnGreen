@@ -157,6 +157,17 @@ export interface SimulationPlanErrorDetail {
   message: string;
 }
 
+export class SimulationPlanError extends Error {
+  public readonly detail: SimulationPlanErrorDetail;
+
+  constructor(detail: SimulationPlanErrorDetail) {
+    super(detail.message);
+    this.name = "SimulationPlanError";
+    this.detail = detail;
+    Object.setPrototypeOf(this, SimulationPlanError.prototype);
+  }
+}
+
 export interface SimulationResult {
   turn: number;
   intervention: {
