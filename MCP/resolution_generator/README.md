@@ -3,10 +3,12 @@
 ## Overview
 The `generate_youth_resolution` tool is the civic translation engine of the **TurnGreen** platform. It accepts the player's 5-turn simulation history, target district name, and author details to produce a structured, 1-page policy mandate featuring three actionable civic talking points ready for city council or school board public comment.
 
-All metrics are directly grounded in verified scientific frameworks:
-* **Urban Cooling:** Stanford Natural Capital Project (InVEST Urban Cooling Model v3.14).
+All metrics are framed as educational simulation estimates grounded in established scientific modeling frameworks:
+* **Urban Cooling:** Stanford Natural Capital Project (InVEST Urban Cooling Model v3.14 algorithms).
 * **Stormwater Hydrology:** USDA Natural Resources Conservation Service (NEH-4 Curve Numbers).
 * **Land Degradation Standards:** UN SDG Indicator 15.3.1 & UNCCD Trends.Earth Land Cover Transition Rules (ESA WorldCover 10m).
+
+> **Educational Notice:** Metric outputs represent simulation estimates generated for civic learning. Independent scientific accuracy, site-specific 100m cooling buffer guarantees, numeric financial ROI, and regulatory compliance are not established by this tool.
 
 ---
 

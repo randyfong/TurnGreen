@@ -278,32 +278,44 @@ function runEdgeCaseVerification() {
     allPassed = false;
   }
 
-  // Check 4c: No hallucinated assertions in markdown or talking points
+  // Check 4c: No hallucinated assertions in markdown or talking points, and no unqualified claims
   const hallucinationStrings = [
     "$3.40",
     "3.40 per $1",
     "100-meter cooling buffer",
     "100 meter cooling",
     "Youth Environmental Action Committee",
-    "asthma admissions"
+    "asthma admissions",
+    "verified -",
+    "Compliant ("
   ];
 
   let foundHallucination = false;
   for (const phrase of hallucinationStrings) {
     if (markdown.includes(phrase)) {
-      console.error(`FAIL: Found unsupported text "${phrase}" in markdown!`);
+      console.error(`FAIL: Found unsupported or unqualified text "${phrase}" in markdown!`);
       foundHallucination = true;
     }
     for (const pt of points) {
       if (pt.recommended_script.includes(phrase) || pt.hook.includes(phrase)) {
-        console.error(`FAIL: Found unsupported text "${phrase}" in talking points!`);
+        console.error(`FAIL: Found unsupported or unqualified text "${phrase}" in talking points!`);
         foundHallucination = true;
       }
     }
   }
 
+  // Ensure educational simulation disclaimer is present
+  if (!markdown.includes("Educational Simulation Notice")) {
+    console.error("FAIL: Educational Simulation Notice missing from markdown output!");
+    foundHallucination = true;
+  }
+  if (!resolutionOutput.single_page_html.includes("Educational Simulation Notice")) {
+    console.error("FAIL: Educational Simulation Notice missing from HTML output!");
+    foundHallucination = true;
+  }
+
   if (!foundHallucination) {
-    console.log("    [PASS] Verified zero hallucinated economic ($3.40/$1), fictitious health, or buffer claims.");
+    console.log("    [PASS] Verified zero hallucinated economic ($3.40/$1), buffer, or unqualified claims; educational simulation disclaimer present.");
   } else {
     allPassed = false;
   }

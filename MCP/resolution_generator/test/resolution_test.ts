@@ -125,8 +125,14 @@ try {
   assert(result.resolution_markdown.includes("Simulation Modeling Framework"), "Markdown table header check");
   assert(result.resolution_markdown.includes("SDG 15.3.1 Alignment"), "Markdown SDG alignment check");
 
-  // Verify absence of fabricated or unsupported claims
-  const combinedText = `${result.executive_summary} ${result.talking_points.map((t) => t.recommended_script).join(" ")} ${result.resolution_markdown}`;
+  // Verify dynamic greenspace percentage (not hardcoded 25%)
+  assert.notStrictEqual(result.biophysical_scorecard.total_trees_or_greenspace_pct_increase, 25, "Greenspace percentage should be dynamic, not fixed at 25%");
+  assert(result.biophysical_scorecard.total_trees_or_greenspace_pct_increase > 0, "Greenspace percentage must be > 0");
+
+  // Verify absence of unqualified claims and fabricated assertions
+  const combinedText = `${result.executive_summary} ${result.talking_points.map((t) => t.recommended_script).join(" ")} ${result.resolution_markdown} ${result.biophysical_scorecard.un_sdg_15_3_1_avoided_degradation_score}`;
+  assert(!combinedText.includes("verified -"), "Should not contain unqualified 'verified -' cooling claims");
+  assert(!combinedText.includes("Compliant ("), "Should not contain unqualified 'Compliant (' language");
   assert(!combinedText.includes("$3.40"), "Should not contain fabricated '$3.40' return claim");
   assert(!combinedText.includes("100-meter cooling buffer"), "Should not contain unverified 100m cooling buffer claim");
 
