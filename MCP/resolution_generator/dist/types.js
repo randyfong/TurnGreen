@@ -29,6 +29,8 @@ export const CumulativeMetricsSchema = z.object({
     net_cooling_celsius: z.number().default(0),
     net_cooling_fahrenheit: z.number().default(0),
     net_stormwater_retained_m3: z.number().default(0),
+    total_modeled_retention_m3: z.number().optional().describe("Total modeled stormwater retained during design storm"),
+    baseline_runoff_reduction_m3: z.number().optional().describe("Improvement over original baseline runoff in m³"),
     net_stormwater_retained_gallons: z.number().default(0),
     total_area_converted_ha: z.number().default(0),
     ground_depaved_ha: z.number().optional().describe("Net ground area de-paved (Classes 10 & 20)"),

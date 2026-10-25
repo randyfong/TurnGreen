@@ -54,6 +54,8 @@ export declare const CumulativeMetricsSchema: z.ZodObject<{
     net_cooling_celsius: z.ZodDefault<z.ZodNumber>;
     net_cooling_fahrenheit: z.ZodDefault<z.ZodNumber>;
     net_stormwater_retained_m3: z.ZodDefault<z.ZodNumber>;
+    total_modeled_retention_m3: z.ZodOptional<z.ZodNumber>;
+    baseline_runoff_reduction_m3: z.ZodOptional<z.ZodNumber>;
     net_stormwater_retained_gallons: z.ZodDefault<z.ZodNumber>;
     total_area_converted_ha: z.ZodDefault<z.ZodNumber>;
     ground_depaved_ha: z.ZodOptional<z.ZodNumber>;
@@ -72,6 +74,8 @@ export declare const CumulativeMetricsSchema: z.ZodObject<{
     depaved_impervious_pct: number;
     overall_sustainability_score: number;
     community_cheer_score: number;
+    total_modeled_retention_m3?: number | undefined;
+    baseline_runoff_reduction_m3?: number | undefined;
     ground_depaved_ha?: number | undefined;
     rooftop_treated_ha?: number | undefined;
 }, {
@@ -80,6 +84,8 @@ export declare const CumulativeMetricsSchema: z.ZodObject<{
     net_cooling_celsius?: number | undefined;
     net_cooling_fahrenheit?: number | undefined;
     net_stormwater_retained_m3?: number | undefined;
+    total_modeled_retention_m3?: number | undefined;
+    baseline_runoff_reduction_m3?: number | undefined;
     net_stormwater_retained_gallons?: number | undefined;
     total_area_converted_ha?: number | undefined;
     ground_depaved_ha?: number | undefined;
@@ -144,6 +150,8 @@ export declare const SessionHistorySchema: z.ZodObject<{
         net_cooling_celsius: z.ZodDefault<z.ZodNumber>;
         net_cooling_fahrenheit: z.ZodDefault<z.ZodNumber>;
         net_stormwater_retained_m3: z.ZodDefault<z.ZodNumber>;
+        total_modeled_retention_m3: z.ZodOptional<z.ZodNumber>;
+        baseline_runoff_reduction_m3: z.ZodOptional<z.ZodNumber>;
         net_stormwater_retained_gallons: z.ZodDefault<z.ZodNumber>;
         total_area_converted_ha: z.ZodDefault<z.ZodNumber>;
         ground_depaved_ha: z.ZodOptional<z.ZodNumber>;
@@ -162,6 +170,8 @@ export declare const SessionHistorySchema: z.ZodObject<{
         depaved_impervious_pct: number;
         overall_sustainability_score: number;
         community_cheer_score: number;
+        total_modeled_retention_m3?: number | undefined;
+        baseline_runoff_reduction_m3?: number | undefined;
         ground_depaved_ha?: number | undefined;
         rooftop_treated_ha?: number | undefined;
     }, {
@@ -170,6 +180,8 @@ export declare const SessionHistorySchema: z.ZodObject<{
         net_cooling_celsius?: number | undefined;
         net_cooling_fahrenheit?: number | undefined;
         net_stormwater_retained_m3?: number | undefined;
+        total_modeled_retention_m3?: number | undefined;
+        baseline_runoff_reduction_m3?: number | undefined;
         net_stormwater_retained_gallons?: number | undefined;
         total_area_converted_ha?: number | undefined;
         ground_depaved_ha?: number | undefined;
@@ -221,6 +233,8 @@ export declare const SessionHistorySchema: z.ZodObject<{
         depaved_impervious_pct: number;
         overall_sustainability_score: number;
         community_cheer_score: number;
+        total_modeled_retention_m3?: number | undefined;
+        baseline_runoff_reduction_m3?: number | undefined;
         ground_depaved_ha?: number | undefined;
         rooftop_treated_ha?: number | undefined;
     } | undefined;
@@ -254,6 +268,8 @@ export declare const SessionHistorySchema: z.ZodObject<{
         net_cooling_celsius?: number | undefined;
         net_cooling_fahrenheit?: number | undefined;
         net_stormwater_retained_m3?: number | undefined;
+        total_modeled_retention_m3?: number | undefined;
+        baseline_runoff_reduction_m3?: number | undefined;
         net_stormwater_retained_gallons?: number | undefined;
         total_area_converted_ha?: number | undefined;
         ground_depaved_ha?: number | undefined;
@@ -329,6 +345,8 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             net_cooling_celsius: z.ZodDefault<z.ZodNumber>;
             net_cooling_fahrenheit: z.ZodDefault<z.ZodNumber>;
             net_stormwater_retained_m3: z.ZodDefault<z.ZodNumber>;
+            total_modeled_retention_m3: z.ZodOptional<z.ZodNumber>;
+            baseline_runoff_reduction_m3: z.ZodOptional<z.ZodNumber>;
             net_stormwater_retained_gallons: z.ZodDefault<z.ZodNumber>;
             total_area_converted_ha: z.ZodDefault<z.ZodNumber>;
             ground_depaved_ha: z.ZodOptional<z.ZodNumber>;
@@ -347,6 +365,8 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             depaved_impervious_pct: number;
             overall_sustainability_score: number;
             community_cheer_score: number;
+            total_modeled_retention_m3?: number | undefined;
+            baseline_runoff_reduction_m3?: number | undefined;
             ground_depaved_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
         }, {
@@ -355,6 +375,8 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             net_cooling_celsius?: number | undefined;
             net_cooling_fahrenheit?: number | undefined;
             net_stormwater_retained_m3?: number | undefined;
+            total_modeled_retention_m3?: number | undefined;
+            baseline_runoff_reduction_m3?: number | undefined;
             net_stormwater_retained_gallons?: number | undefined;
             total_area_converted_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
@@ -406,6 +428,8 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             depaved_impervious_pct: number;
             overall_sustainability_score: number;
             community_cheer_score: number;
+            total_modeled_retention_m3?: number | undefined;
+            baseline_runoff_reduction_m3?: number | undefined;
             ground_depaved_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
         } | undefined;
@@ -439,6 +463,8 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             net_cooling_celsius?: number | undefined;
             net_cooling_fahrenheit?: number | undefined;
             net_stormwater_retained_m3?: number | undefined;
+            total_modeled_retention_m3?: number | undefined;
+            baseline_runoff_reduction_m3?: number | undefined;
             net_stormwater_retained_gallons?: number | undefined;
             total_area_converted_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
@@ -487,6 +513,8 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             depaved_impervious_pct: number;
             overall_sustainability_score: number;
             community_cheer_score: number;
+            total_modeled_retention_m3?: number | undefined;
+            baseline_runoff_reduction_m3?: number | undefined;
             ground_depaved_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
         } | undefined;
@@ -525,6 +553,8 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             net_cooling_celsius?: number | undefined;
             net_cooling_fahrenheit?: number | undefined;
             net_stormwater_retained_m3?: number | undefined;
+            total_modeled_retention_m3?: number | undefined;
+            baseline_runoff_reduction_m3?: number | undefined;
             net_stormwater_retained_gallons?: number | undefined;
             total_area_converted_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
@@ -557,6 +587,8 @@ export interface BiophysicalScorecard {
     total_heat_reduction_c: number;
     total_heat_reduction_f: number;
     total_stormwater_retained_m3: number;
+    total_modeled_retention_m3?: number;
+    baseline_runoff_reduction_m3?: number;
     total_stormwater_retained_gallons: number;
     total_depaved_ha: number;
     ground_depaved_ha: number;

@@ -82,6 +82,8 @@ const GENERATE_YOUTH_RESOLUTION_TOOL = {
                             net_cooling_celsius: { type: "number" },
                             net_cooling_fahrenheit: { type: "number" },
                             net_stormwater_retained_m3: { type: "number" },
+                            total_modeled_retention_m3: { type: "number" },
+                            baseline_runoff_reduction_m3: { type: "number" },
                             net_stormwater_retained_gallons: { type: "number" },
                             total_area_converted_ha: { type: "number" },
                             overall_sustainability_score: { type: "number" },

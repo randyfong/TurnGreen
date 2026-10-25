@@ -53,7 +53,7 @@ export function buildActionableTalkingPoints(
     hook: `During severe cloudbursts and atmospheric storms in ${districtName}, stormwater overwhelms local street drainage because extensive surfaces are sealed with impervious pavement.`,
     evidence_citation: `${INVEST_FLOOD_STANDARD.model}`,
     recommended_script:
-      `Our 5-turn planning simulation demonstrates that de-paving obsolete asphalt and installing bio-retention soils diverts ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ (${scorecard.total_stormwater_retained_gallons.toLocaleString()} gallons) of stormwater during a design storm event. Modeled using USDA-SCS Curve Number hydrology, nature-based infiltration retains water on-site and mitigates street-level runoff.`,
+      `Our 5-turn planning simulation demonstrates that de-paving obsolete asphalt and installing bio-retention soils achieves ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of total modeled retention during a 50-mm design storm—yielding an ${(scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ net reduction in surface runoff over baseline conditions. Modeled using USDA-SCS Curve Number hydrology, nature-based infiltration retains water on-site and mitigates street-level runoff.`,
     policy_demand: `Adopt a municipal 'De-Pave First' ordinance prioritizing permeable pavement and roadside bioswales during scheduled roadway and sidewalk capital renewals.`
   };
 

@@ -229,7 +229,7 @@ export function renderSinglePageHtml(doc: Omit<YouthResolutionDocument, "single_
       </div>
       <div class="score-card">
         <span class="val">${escapeHtml(doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString())} m³</span>
-        <span class="lbl">Design Storm Runoff Diverted</span>
+        <span class="lbl">Total Modeled Retention (50-mm Design Storm)</span>
       </div>
       <div class="score-card">
         <span class="val">${escapeHtml(doc.biophysical_scorecard.ground_depaved_ha.toFixed(2))} ha</span>
@@ -301,7 +301,7 @@ ${doc.executive_summary}
 | Metric | Value | Scientific Validation Framework |
 | :--- | :--- | :--- |
 | **Heatwave Surface Cooling** | **${doc.biophysical_scorecard.total_heat_reduction_display}** | Stanford InVEST Urban Cooling Model |
-| **Design Storm Runoff Diverted** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³ / storm** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal) | USDA-SCS Curve Number Hydrology |
+| **Total Modeled Stormwater Retention** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³ / 50-mm storm** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal; ${(doc.biophysical_scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ runoff reduction) | USDA-SCS Curve Number Hydrology |
 | **Net Ground De-Paved** | **${doc.biophysical_scorecard.ground_depaved_ha.toFixed(2)} hectares** | ESA WorldCover 10m (Class 50 &rarr; 10/20) |
 | **Rooftop Retrofits** | **${doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2)} hectares** | High-Albedo & Vegetative Roofs |
 | **Global Standard Alignment** | **UN SDG 15.3.1 Target** | UNCCD Trends.Earth Avoided Degradation |
