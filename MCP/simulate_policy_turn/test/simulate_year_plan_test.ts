@@ -254,12 +254,19 @@ try {
   });
 } catch (err: unknown) {
   annualBudgetThrown = true;
+  const msg = (err as Error).message;
   assert.ok(
-    (err as Error).message.includes("Annual budget validation failed"),
-    `Expected Annual budget validation error, got: ${(err as Error).message}`
+    msg.includes("Annual budget validation failed"),
+    `Expected Annual budget validation error, got: ${msg}`
   );
-  console.log("✓ Annual budget validation error caught:", (err as Error).message);
+  assert.ok(
+    msg.includes("exceeds maximum annual budget limit (🪙30)"),
+    `Expected mention of annual limit, got: ${msg}`
+  );
+  console.log("✓ Annual budget validation descriptive error caught:", msg);
 }
+assert.ok(annualBudgetThrown, "executeYearPlanSimulation must reject requests exceeding max_annual_budget");
+
 // Test 10: Fixed Project Ordering & Index Annotation
 console.log("\n[Test 10] Validating Deterministic Project Ordering & Index Annotation...");
 
@@ -298,6 +305,89 @@ assert.strictEqual(sortedPlanResult.projects_executed[2].original_index, 0); // 
 assert.strictEqual(sortedPlanResult.projects_executed[2].executed_index, 2);
 
 console.log("✓ Projects deterministically ordered and annotated with original_index & executed_index!");
+
+// Test 11: Ordering Invariance Test (Forward vs. Reverse Ordering)
+console.log("\n[Test 11] Validating Ordering Invariance (Identical Biophysical Outputs for Forward vs. Reverse Projects)...");
+
+const projectSetForward = [
+  { intervention_id: "permeable_pavement" as const, budget_allocated: 20, project_name: "Alley Pavers" },
+  { intervention_id: "pocket_parks" as const, budget_allocated: 20, project_name: "Community Greenspace" },
+  { intervention_id: "cool_roofs" as const, budget_allocated: 16, project_name: "Reflective Coating" }
+];
+
+const projectSetReverse = [
+  { intervention_id: "cool_roofs" as const, budget_allocated: 16, project_name: "Reflective Coating" },
+  { intervention_id: "pocket_parks" as const, budget_allocated: 20, project_name: "Community Greenspace" },
+  { intervention_id: "permeable_pavement" as const, budget_allocated: 20, project_name: "Alley Pavers" }
+];
+
+const resultForward = executeYearPlanSimulation({
+  year: 1,
+  projects: projectSetForward,
+  current_state: coinNeighborhoodState
+});
+
+const resultReverse = executeYearPlanSimulation({
+  year: 1,
+  projects: projectSetReverse,
+  current_state: coinNeighborhoodState
+});
+
+// 1. Verify next_state land_cover equality
+assert.deepStrictEqual(
+  resultForward.next_state.land_cover,
+  resultReverse.next_state.land_cover,
+  "Final land cover distribution must be strictly identical regardless of input project ordering"
+);
+
+// 2. Verify roof treatment hectares equality
+assert.strictEqual(
+  resultForward.next_state.roof_treatment_hectares,
+  resultReverse.next_state.roof_treatment_hectares,
+  "Roof treatment hectares must be strictly identical"
+);
+
+// 3. Verify total budget spent and remaining budget equality
+assert.strictEqual(resultForward.total_budget_spent, resultReverse.total_budget_spent);
+assert.strictEqual(resultForward.next_state.remaining_budget, resultReverse.next_state.remaining_budget);
+
+// 4. Verify surface cooling biophysical equality
+assert.strictEqual(
+  resultForward.science_payload.invest_urban_cooling.surface_temp_drop_celsius,
+  resultReverse.science_payload.invest_urban_cooling.surface_temp_drop_celsius,
+  "Surface cooling temperature drop must match identically"
+);
+
+// 5. Verify flood stormwater retained equality
+assert.strictEqual(
+  resultForward.science_payload.invest_urban_flood.stormwater_retained_m3,
+  resultReverse.science_payload.invest_urban_flood.stormwater_retained_m3,
+  "Stormwater retention m3 must match identically"
+);
+
+// 6. Verify dry-season impact equality
+assert.strictEqual(
+  resultForward.science_payload.dry_season_impact?.drought_resilience_score,
+  resultReverse.science_payload.dry_season_impact?.drought_resilience_score,
+  "Drought resilience score must match identically"
+);
+
+// 7. Verify conversion hectares per project equality
+const forwardHectares = resultForward.projects_executed.map((p) => ({
+  id: p.intervention_id,
+  ha: p.area_converted_hectares
+}));
+const reverseHectares = resultReverse.projects_executed.map((p) => ({
+  id: p.intervention_id,
+  ha: p.area_converted_hectares
+}));
+assert.deepStrictEqual(
+  forwardHectares,
+  reverseHectares,
+  "Conversion hectares per project must match identically in canonical order"
+);
+
+console.log("✓ Ordering invariance verified: forward and reverse project inputs produced 100% identical biophysical results and conversion hectares!");
 
 console.log("\n🎉 ALL SIMULATE_YEAR_PLAN UNIT TESTS PASSED! 🎉\n");
 
