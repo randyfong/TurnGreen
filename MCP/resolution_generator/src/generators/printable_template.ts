@@ -255,8 +255,11 @@ export function renderSinglePageHtml(doc: Omit<YouthResolutionDocument, "single_
     </div>
 
     <div class="footer-bar">
-      <span>TurnGreen Civic Simulation Engine &bull; Science: Stanford InVEST &bull; ESA WorldCover 10m &bull; UNCCD Trends.Earth</span>
-      <span>Verified Single-Page Youth Policy Mandate</span>
+      <span>TurnGreen Civic Simulation Engine &bull; Modeling Framework: Stanford InVEST &bull; ESA WorldCover 10m &bull; USDA-SCS NEH-4</span>
+      <span>Simulated Youth Policy Mandate (Educational Scenario)</span>
+    </div>
+    <div style="font-size: 6pt; color: #718096; margin-top: 3px; font-style: italic; line-height: 1.2;">
+      Educational Simulation Notice: Metric outputs are simulation estimates generated for civic learning using simplified biophysical formulas (InVEST urban cooling, USDA-SCS hydrology, and UNCCD SDG 15.3.1 definitions). Independent scientific accuracy, site-specific 100m cooling radii, numeric financial ROI, and regulatory compliance are not established by this tool.
     </div>
   </div>
 </body>
@@ -291,7 +294,7 @@ export function renderResolutionMarkdown(doc: Omit<YouthResolutionDocument, "sin
     ? `| **Total Ground Ecological Interventions** | **${totalGroundInterventions.toFixed(2)} hectares** (including ${bareSoilRestored.toFixed(2)} ha bare-soil restoration & permeable retrofits) | Gross Intervention Footprint |\n`
     : "";
 
-  return `# YOUTH CLIMATE RESILIENCE MANDATE
+  return `# YOUTH CLIMATE RESILIENCE MANDATE (SIMULATED SCENARIO)
 **Resolution Number:** ${doc.resolution_number}  
 **Target Body:** ${doc.target_body}  
 **District:** ${doc.district_name}  
@@ -304,7 +307,7 @@ export function renderResolutionMarkdown(doc: Omit<YouthResolutionDocument, "sin
 ${doc.executive_summary}
 
 ## Biophysical Impact Scorecard
-| Metric | Value | Scientific Validation Framework |
+| Metric | Value | Simulation Modeling Framework |
 | :--- | :--- | :--- |
 | **Heatwave Surface Cooling** | **${doc.biophysical_scorecard.total_heat_reduction_display}** | Stanford InVEST Urban Cooling Model |
 | **Total Modeled Stormwater Retention** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³ / 50-mm storm** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal; ${(doc.biophysical_scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ runoff reduction) | USDA-SCS Curve Number Hydrology |
@@ -326,7 +329,7 @@ ${resolvedMd}
 ${tpMd}
 
 ---
-*Grounded in verified scientific models: Stanford Natural Capital Project (InVEST v3.14), ESA WorldCover 10m, and UNCCD Land Degradation Neutrality Framework (SDG 15.3.1).*
+*Educational Simulation Notice: Metric outputs are simulation estimates generated for civic learning using simplified biophysical formulas (InVEST urban cooling, USDA-SCS hydrology, and UNCCD SDG 15.3.1 definitions). Independent scientific accuracy, site-specific 100m cooling radii, numeric financial ROI, and regulatory compliance are not established by this tool.*
 `;
 }
 
