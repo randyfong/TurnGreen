@@ -690,7 +690,12 @@ export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResu
   indexedProjects.forEach(({ project, originalIndex }, executedIndex) => {
     const policy = POLICY_INTERVENTIONS[project.intervention_id];
     if (!policy) {
-      throw new Error(`Unknown intervention type: ${project.intervention_id}`);
+      throw new SimulationPlanError({
+        error_code: "INVALID_PROJECT",
+        project_index: originalIndex,
+        project_name: project.project_name,
+        message: `Unknown intervention type: ${project.intervention_id}`
+      });
     }
 
     const budgetRequested = project.budget_allocated;
