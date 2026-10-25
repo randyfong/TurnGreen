@@ -1,6 +1,6 @@
 import { calculateDrySeasonCooling } from "./models/invest_cooling.js";
 import { calculateDrySeasonFloodRisk } from "./models/invest_flood.js";
-import { LandCoverDistribution, SimulationResult, YearPlanSimulationResult } from "./types.js";
+import { LandCoverDistribution, SimulationResult, YearPlanInput, YearPlanSimulationResult } from "./types.js";
 export declare function executeSimulation(inputRaw: unknown): SimulationResult;
 export interface AnnualDrySeasonResult {
     drySeasonCooling: ReturnType<typeof calculateDrySeasonCooling>;
@@ -23,4 +23,5 @@ export declare function applyAnnualDrySeason(workingLandCover: LandCoverDistribu
     droughtStressFactor?: number;
     droughtPrecipitationMm?: number;
 }): AnnualDrySeasonResult;
+export declare function validateYearPlan(rawInput: unknown): YearPlanInput;
 export declare function executeYearPlanSimulation(args: unknown): YearPlanSimulationResult;

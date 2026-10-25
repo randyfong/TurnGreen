@@ -15,6 +15,8 @@ import {
   LandCoverDistribution,
   NeighborhoodState,
   PolicyInputSchema,
+  SimulationPlanError,
+  SimulationPlanErrorDetail,
   SimulationResult,
   YearPlanInput,
   YearPlanInputSchema,
@@ -536,27 +538,113 @@ export function applyAnnualDrySeason(
   };
 }
 
-export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResult {
-  const parsed = YearPlanInputSchema.parse(args);
-  const { year, max_annual_budget, projects, current_state } = parsed;
+export function validateYearPlan(rawInput: unknown): YearPlanInput {
+  // Check raw projects array existence and emptiness before or during schema parse
+  if (typeof rawInput === "object" && rawInput !== null) {
+    const rawObj = rawInput as Record<string, unknown>;
+    if (Array.isArray(rawObj.projects) && rawObj.projects.length === 0) {
+      throw new SimulationPlanError({
+        error_code: "EMPTY_PLAN",
+        message: "Plan validation failed: projects list cannot be empty."
+      });
+    }
 
-  // 1. Budget Validation: Verify sum of all budget_allocated across projects does not exceed remaining_budget
+    // Inspect individual projects for invalid ID, nonpositive budget, or duplicates
+    if (Array.isArray(rawObj.projects)) {
+      const seenInterventions = new Set<string>();
+
+      for (let i = 0; i < rawObj.projects.length; i++) {
+        const p = rawObj.projects[i];
+        if (!p || typeof p !== "object") {
+          throw new SimulationPlanError({
+            error_code: "INVALID_PROJECT",
+            project_index: i,
+            message: `Plan validation failed at project index ${i}: project entry must be an object.`
+          });
+        }
+
+        const projectObj = p as Record<string, unknown>;
+        const interventionId = projectObj.intervention_id as string;
+        const projectName = typeof projectObj.project_name === "string" ? projectObj.project_name : undefined;
+
+        // 1. Unknown / invalid intervention ID
+        const validInterventions = Object.keys(POLICY_INTERVENTIONS);
+        if (!interventionId || !validInterventions.includes(interventionId)) {
+          throw new SimulationPlanError({
+            error_code: "INVALID_PROJECT",
+            project_index: i,
+            project_name: projectName,
+            message: `Plan validation failed at project index ${i}: Unknown or invalid intervention '${interventionId}'. Valid options: ${validInterventions.join(", ")}.`
+          });
+        }
+
+        // 2. Nonpositive or NaN budget
+        const budgetAllocated = projectObj.budget_allocated;
+        if (
+          typeof budgetAllocated !== "number" ||
+          isNaN(budgetAllocated) ||
+          budgetAllocated <= 0
+        ) {
+          throw new SimulationPlanError({
+            error_code: "NON_POSITIVE_BUDGET",
+            project_index: i,
+            project_name: projectName,
+            message: `Plan validation failed at project index ${i} (${interventionId}): Budget allocated must be a positive number greater than 0, received ${budgetAllocated}.`
+          });
+        }
+
+        // 3. Strict Reject duplicate intervention policy
+        if (seenInterventions.has(interventionId)) {
+          throw new SimulationPlanError({
+            error_code: "DUPLICATE_PROJECT_TYPE",
+            project_index: i,
+            project_name: projectName,
+            message: `Plan validation failed at project index ${i}: Duplicate project intervention '${interventionId}' found. Duplicate project types must be combined into a single project allocation.`
+          });
+        }
+        seenInterventions.add(interventionId);
+      }
+    }
+  }
+
+  // Parse input against schema
+  let parsed: YearPlanInput;
+  try {
+    parsed = YearPlanInputSchema.parse(rawInput);
+  } catch (zodErr: unknown) {
+    throw zodErr;
+  }
+
+  const { projects, current_state } = parsed;
   const budgetCurrency = current_state.budget_currency ?? (current_state.remaining_budget > 500 ? "usd" : "coins");
   const currencySymbol = budgetCurrency === "coins" ? "🪙" : "$";
   const totalRequestedBudget = projects.reduce((acc, p) => acc + p.budget_allocated, 0);
-  if (totalRequestedBudget > current_state.remaining_budget) {
-    throw new Error(
-      `Budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds remaining budget (${currencySymbol}${current_state.remaining_budget.toLocaleString()}).`
-    );
-  }
 
+  // 4. Annual budget limit check
   const effectiveAnnualBudgetLimit = parsed.annual_budget_limit ?? parsed.max_annual_budget;
-
   if (effectiveAnnualBudgetLimit !== undefined && totalRequestedBudget > effectiveAnnualBudgetLimit) {
-    throw new Error(
-      `Annual budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds maximum annual budget limit (${currencySymbol}${effectiveAnnualBudgetLimit.toLocaleString()}).`
-    );
+    throw new SimulationPlanError({
+      error_code: "ANNUAL_BUDGET_EXCEEDED",
+      message: `Annual budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds maximum annual budget limit (${currencySymbol}${effectiveAnnualBudgetLimit.toLocaleString()}).`
+    });
   }
+
+  // 5. Remaining player budget check
+  if (totalRequestedBudget > current_state.remaining_budget) {
+    throw new SimulationPlanError({
+      error_code: "REMAINING_BUDGET_EXCEEDED",
+      message: `Budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds remaining budget (${currencySymbol}${current_state.remaining_budget.toLocaleString()}).`
+    });
+  }
+
+  return parsed;
+}
+
+export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResult {
+  const parsed = validateYearPlan(args);
+  const { year, projects, current_state } = parsed;
+  const budgetCurrency = current_state.budget_currency ?? (current_state.remaining_budget > 500 ? "usd" : "coins");
+  const currencySymbol = budgetCurrency === "coins" ? "🪙" : "$";
 
   // Baseline copies
   const initialLandCover: LandCoverDistribution = { ...current_state.land_cover };
@@ -950,6 +1038,17 @@ async function startServer() {
           ]
         };
       } catch (err: unknown) {
+        if (err instanceof SimulationPlanError) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(err.detail, null, 2)
+              }
+            ]
+          };
+        }
         const errorMsg = err instanceof Error ? err.message : String(err);
         return {
           isError: true,

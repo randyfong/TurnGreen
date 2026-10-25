@@ -5,7 +5,7 @@ import { POLICY_INTERVENTIONS, CANONICAL_PROJECT_EXECUTION_ORDER } from "./const
 import { calculateInVESTCooling, calculateDrySeasonCooling } from "./models/invest_cooling.js";
 import { calculateInVESTFloodRisk, calculateDrySeasonFloodRisk } from "./models/invest_flood.js";
 import { generateYouthSummary } from "./translators/youth_metrics.js";
-import { PolicyInputSchema, YearPlanInputSchema } from "./types.js";
+import { PolicyInputSchema, SimulationPlanError, YearPlanInputSchema } from "./types.js";
 const SIMULATE_POLICY_TURN_TOOL = {
     name: "simulate_policy_turn",
     description: "Simulates an urban policy turn (1 to 5) in TurnGreen. Calculates environmental shifts in neighborhood temperature and stormwater retention based on land cover conversions (ESA WorldCover) using Stanford InVEST Urban Cooling and Urban Flood Risk Mitigation equations. Stateless: accepts current state and budget, returns updated state, youth-accessible scorecards, and a scientific metadata payload.",
@@ -457,20 +457,100 @@ export function applyAnnualDrySeason(workingLandCover, options) {
         drought_summary: droughtSummary
     };
 }
-export function executeYearPlanSimulation(args) {
-    const parsed = YearPlanInputSchema.parse(args);
-    const { year, max_annual_budget, projects, current_state } = parsed;
-    // 1. Budget Validation: Verify sum of all budget_allocated across projects does not exceed remaining_budget
+export function validateYearPlan(rawInput) {
+    // Check raw projects array existence and emptiness before or during schema parse
+    if (typeof rawInput === "object" && rawInput !== null) {
+        const rawObj = rawInput;
+        if (Array.isArray(rawObj.projects) && rawObj.projects.length === 0) {
+            throw new SimulationPlanError({
+                error_code: "EMPTY_PLAN",
+                message: "Plan validation failed: projects list cannot be empty."
+            });
+        }
+        // Inspect individual projects for invalid ID, nonpositive budget, or duplicates
+        if (Array.isArray(rawObj.projects)) {
+            const seenInterventions = new Set();
+            for (let i = 0; i < rawObj.projects.length; i++) {
+                const p = rawObj.projects[i];
+                if (!p || typeof p !== "object") {
+                    throw new SimulationPlanError({
+                        error_code: "INVALID_PROJECT",
+                        project_index: i,
+                        message: `Plan validation failed at project index ${i}: project entry must be an object.`
+                    });
+                }
+                const projectObj = p;
+                const interventionId = projectObj.intervention_id;
+                const projectName = typeof projectObj.project_name === "string" ? projectObj.project_name : undefined;
+                // 1. Unknown / invalid intervention ID
+                const validInterventions = Object.keys(POLICY_INTERVENTIONS);
+                if (!interventionId || !validInterventions.includes(interventionId)) {
+                    throw new SimulationPlanError({
+                        error_code: "INVALID_PROJECT",
+                        project_index: i,
+                        project_name: projectName,
+                        message: `Plan validation failed at project index ${i}: Unknown or invalid intervention '${interventionId}'. Valid options: ${validInterventions.join(", ")}.`
+                    });
+                }
+                // 2. Nonpositive or NaN budget
+                const budgetAllocated = projectObj.budget_allocated;
+                if (typeof budgetAllocated !== "number" ||
+                    isNaN(budgetAllocated) ||
+                    budgetAllocated <= 0) {
+                    throw new SimulationPlanError({
+                        error_code: "NON_POSITIVE_BUDGET",
+                        project_index: i,
+                        project_name: projectName,
+                        message: `Plan validation failed at project index ${i} (${interventionId}): Budget allocated must be a positive number greater than 0, received ${budgetAllocated}.`
+                    });
+                }
+                // 3. Strict Reject duplicate intervention policy
+                if (seenInterventions.has(interventionId)) {
+                    throw new SimulationPlanError({
+                        error_code: "DUPLICATE_PROJECT_TYPE",
+                        project_index: i,
+                        project_name: projectName,
+                        message: `Plan validation failed at project index ${i}: Duplicate project intervention '${interventionId}' found. Duplicate project types must be combined into a single project allocation.`
+                    });
+                }
+                seenInterventions.add(interventionId);
+            }
+        }
+    }
+    // Parse input against schema
+    let parsed;
+    try {
+        parsed = YearPlanInputSchema.parse(rawInput);
+    }
+    catch (zodErr) {
+        throw zodErr;
+    }
+    const { projects, current_state } = parsed;
     const budgetCurrency = current_state.budget_currency ?? (current_state.remaining_budget > 500 ? "usd" : "coins");
     const currencySymbol = budgetCurrency === "coins" ? "🪙" : "$";
     const totalRequestedBudget = projects.reduce((acc, p) => acc + p.budget_allocated, 0);
-    if (totalRequestedBudget > current_state.remaining_budget) {
-        throw new Error(`Budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds remaining budget (${currencySymbol}${current_state.remaining_budget.toLocaleString()}).`);
-    }
+    // 4. Annual budget limit check
     const effectiveAnnualBudgetLimit = parsed.annual_budget_limit ?? parsed.max_annual_budget;
     if (effectiveAnnualBudgetLimit !== undefined && totalRequestedBudget > effectiveAnnualBudgetLimit) {
-        throw new Error(`Annual budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds maximum annual budget limit (${currencySymbol}${effectiveAnnualBudgetLimit.toLocaleString()}).`);
+        throw new SimulationPlanError({
+            error_code: "ANNUAL_BUDGET_EXCEEDED",
+            message: `Annual budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds maximum annual budget limit (${currencySymbol}${effectiveAnnualBudgetLimit.toLocaleString()}).`
+        });
     }
+    // 5. Remaining player budget check
+    if (totalRequestedBudget > current_state.remaining_budget) {
+        throw new SimulationPlanError({
+            error_code: "REMAINING_BUDGET_EXCEEDED",
+            message: `Budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds remaining budget (${currencySymbol}${current_state.remaining_budget.toLocaleString()}).`
+        });
+    }
+    return parsed;
+}
+export function executeYearPlanSimulation(args) {
+    const parsed = validateYearPlan(args);
+    const { year, projects, current_state } = parsed;
+    const budgetCurrency = current_state.budget_currency ?? (current_state.remaining_budget > 500 ? "usd" : "coins");
+    const currencySymbol = budgetCurrency === "coins" ? "🪙" : "$";
     // Baseline copies
     const initialLandCover = { ...current_state.land_cover };
     const workingLandCover = { ...current_state.land_cover };
@@ -820,6 +900,17 @@ async function startServer() {
                 };
             }
             catch (err) {
+                if (err instanceof SimulationPlanError) {
+                    return {
+                        isError: true,
+                        content: [
+                            {
+                                type: "text",
+                                text: JSON.stringify(err.detail, null, 2)
+                            }
+                        ]
+                    };
+                }
                 const errorMsg = err instanceof Error ? err.message : String(err);
                 return {
                     isError: true,
