@@ -327,7 +327,7 @@ function runClientTests() {
       coinOverspendCaught = true;
       console.log("✓ 100-coin overspend correctly rejected by pre-flight validation:", err.message);
       console.assert(
-        err.message.includes("Total plan budget (🪙105) cannot exceed remaining budget (🪙100)"),
+        err.message.includes("budget_allocated (🪙105) cannot exceed remaining_budget (🪙100)"),
         "Error message should use coin symbol and values"
       );
     }
@@ -341,6 +341,32 @@ function runClientTests() {
   ]);
   console.log(`✓ Coin plan executed. Spent: 🪙${coinPlanResult.total_budget_spent}, Remaining: 🪙${coinSession.getRemainingBudget()}`);
   console.assert(coinSession.getRemainingBudget() === 36, "Remaining coins should be 36");
+  console.assert(coinSession.getTotalBudgetSpent() === 64, "Total budget spent should be 64 coins");
+
+  // Verify second year plan exceeding cumulative remaining 36 coins
+  let year2OverspendCaught = false;
+  try {
+    coinSession.playYearPlan([
+      { intervention_id: "bioswales", budget_allocated: 40 } // 40 > remaining 36
+    ]);
+  } catch (err: unknown) {
+    if (err instanceof ValidationError) {
+      year2OverspendCaught = true;
+      console.log("✓ Second year overspend correctly caught:", err.message);
+      console.assert(
+        err.message.includes("budget_allocated (🪙40) cannot exceed remaining_budget (🪙36)"),
+        "Should reject year 2 plan exceeding remaining coins"
+      );
+    }
+  }
+  console.assert(year2OverspendCaught, "Expected ValidationError on Year 2 plan overspend");
+
+  // Verify second year plan succeeding within remaining 36 coins
+  coinSession.playYearPlan([
+    { intervention_id: "bioswales", budget_allocated: 30 }
+  ]);
+  console.assert(coinSession.getRemainingBudget() === 6, "Remaining coins should be 6");
+  console.assert(coinSession.getTotalBudgetSpent() === 94, "Total budget spent should be 94 coins");
 
   console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET) PASSED! 🎉\n");
 }

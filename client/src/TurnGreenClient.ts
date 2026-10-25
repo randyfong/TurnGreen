@@ -71,13 +71,17 @@ export interface ClientSessionConfig {
 
 /**
  * Pre-Flight Budget Validation:
- * Validates budget allocation before calling simulate_policy_turn so player cannot submit
- * a turn where budget_allocated > remaining_budget.
+ * Validates budget allocation before calling simulate_policy_turn or simulate_year_plan so player cannot submit
+ * a turn or plan where budget_allocated > remaining_budget or exceeds session cap.
  */
 export function validateTurnBudget(
   budget_allocated: number,
   remaining_budget: number,
-  currency?: "coins" | "usd"
+  currency?: "coins" | "usd",
+  options?: {
+    already_allocated?: number;
+    max_budget?: number;
+  }
 ): void {
   const mode = currency ?? (remaining_budget > 500 ? "usd" : "coins");
   const sym = mode === "coins" ? "🪙" : "$";
@@ -106,6 +110,22 @@ export function validateTurnBudget(
       }
     );
   }
+
+  // Combined Session / Annual Cap Check:
+  if (options?.max_budget !== undefined) {
+    const cumulative = (options.already_allocated ?? 0) + budget_allocated;
+    if (cumulative > options.max_budget) {
+      throw new ValidationError(
+        `Pre-Flight Validation failed: Cumulative budget allocation (${sym}${cumulative.toLocaleString()}) exceeds total allowable budget (${sym}${options.max_budget.toLocaleString()}).`,
+        "budget_allocated",
+        {
+          cumulative,
+          max_budget: options.max_budget,
+          deficit: cumulative - options.max_budget
+        }
+      );
+    }
+  }
 }
 
 /**
@@ -133,6 +153,7 @@ export class TurnGreenClientSession {
 
   private currentState: NeighborhoodState;
   private initialLandCover: LandCoverDistribution;
+  private initialMaxBudget: number;
   private turnsPlayed: TurnRecord[] = [];
   private currentTurnNumber: number = 0;
 
@@ -165,6 +186,8 @@ export class TurnGreenClientSession {
       startingBudget = budgetCurrency === "coins" ? 100 : 200000;
     }
 
+    this.initialMaxBudget = startingBudget;
+
     this.currentState = {
       total_area_hectares: config.total_area_hectares || 50,
       remaining_budget: startingBudget,
@@ -187,6 +210,14 @@ export class TurnGreenClientSession {
 
   public getRemainingBudget(): number {
     return this.currentState.remaining_budget;
+  }
+
+  public getInitialMaxBudget(): number {
+    return this.initialMaxBudget;
+  }
+
+  public getTotalBudgetSpent(): number {
+    return this.turnsPlayed.reduce((sum, t) => sum + t.budget_allocated, 0);
   }
 
   public getCurrentTurn(): number {
@@ -337,11 +368,15 @@ export class TurnGreenClientSession {
     }
 
     // Strict Pre-Flight Budget Validation:
-    // Reject before calling simulate_policy_turn if allocated exceeds remaining budget
+    // Reject before calling simulate_policy_turn if allocated exceeds remaining budget or total session budget
     validateTurnBudget(
       input.budget_allocated,
       this.currentState.remaining_budget,
-      this.currentState.budget_currency ?? "coins"
+      this.currentState.budget_currency ?? "coins",
+      {
+        already_allocated: this.getTotalBudgetSpent(),
+        max_budget: this.initialMaxBudget
+      }
     );
 
     // Call simulation engine wrapped in MCP response contract
@@ -403,7 +438,7 @@ export class TurnGreenClientSession {
   /**
    * Batch Year Plan Simulation:
    * Accepts a list of multiple projects/interventions to execute within a single year plan.
-   * Performs pre-flight validation verifying total batch budget <= remaining_budget.
+   * Performs pre-flight validation verifying total batch budget <= remaining_budget and cumulative spend <= max_budget.
    * Calls simulate_year_plan via MCP response contract.
    * Records individual project sub-records into turnsPlayed so resolution_generator receives all project actions.
    */
@@ -429,17 +464,16 @@ export class TurnGreenClientSession {
       return sum + p.budget_allocated;
     }, 0);
 
-    if (totalBatchBudget > this.currentState.remaining_budget) {
-      throw new ValidationError(
-        `Pre-Flight Validation failed: Total plan budget (${sym}${totalBatchBudget.toLocaleString()}) cannot exceed remaining budget (${sym}${this.currentState.remaining_budget.toLocaleString()}).`,
-        "budget_allocated",
-        {
-          totalBatchBudget,
-          remaining_budget: this.currentState.remaining_budget,
-          deficit: totalBatchBudget - this.currentState.remaining_budget
-        }
-      );
-    }
+    // Validate both against remaining_budget and against cumulative session budget limit
+    validateTurnBudget(
+      totalBatchBudget,
+      this.currentState.remaining_budget,
+      this.currentState.budget_currency ?? "coins",
+      {
+        already_allocated: this.getTotalBudgetSpent(),
+        max_budget: this.initialMaxBudget
+      }
+    );
 
     // Call simulate_year_plan MCP engine wrapped in response contract
     const planResult = wrapMCPToolCallSync<YearPlanSimulationResult>(() => {
