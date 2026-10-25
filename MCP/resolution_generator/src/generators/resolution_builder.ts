@@ -174,14 +174,20 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
     `the 5-year simulation scenario completed by ${author_name} (${orgOrSchoolText}) models verified land cover transitions aligning with UN SDG 15.3.1 Land Degradation Neutrality targets within a $${totalSpend.toLocaleString()} municipal budget.`
   ];
 
+  const totalGroundInterventions = scorecard.total_ground_interventions_ha ?? scorecard.ground_depaved_ha;
+  const bareSoilRestored = scorecard.bare_soil_vegetated_ha ?? 0;
+  const groundScopeText = totalGroundInterventions > scorecard.ground_depaved_ha
+    ? `across ${totalGroundInterventions.toFixed(2)} hectares of total ground interventions (including ${bareSoilRestored.toFixed(2)} hectares of bare soil restoration and permeable retrofits)`
+    : `across ${totalGroundInterventions.toFixed(2)} hectares of total ground interventions`;
+
   const resolvedClauses = [
-    `the ${target_body} shall formally adopt a natural infrastructure target to de-pave a minimum of ${scorecard.ground_depaved_ha.toFixed(1)} hectares of impervious ground and retrofit ${scorecard.rooftop_treated_ha.toFixed(1)} hectares of rooftop area across ${district_name};`,
+    `the ${target_body} shall formally adopt a natural infrastructure target to de-pave a minimum of ${scorecard.ground_depaved_ha.toFixed(1)} hectares of unique impervious ground and retrofit ${scorecard.rooftop_treated_ha.toFixed(1)} hectares of rooftop area ${groundScopeText} across ${district_name};`,
     `municipal capital improvement authorities shall prioritize nature-based solutions, including shade canopy corridors and roadside bioswales, in future roadway and sidewalk projects;`,
     `the ${target_body} establishes a permanent Youth Climate Advisory Seat to review annual infrastructure investments and track local progress toward climate resilience.`
   ];
 
   const executiveSummary =
-    `This policy resolution presents a youth-led, evidence-based climate resilience mandate for ${district_name}. Prepared by ${author_name} (${orgOrSchoolText}) using the TurnGreen simulation engine, this proposal demonstrates how $${totalSpend.toLocaleString()} invested across 5 planning turns achieves ${scorecard.total_heat_reduction_display} in surface cooling, achieves ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of total modeled retention during design storm events (${(scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ runoff reduction over baseline), and converts ${scorecard.ground_depaved_ha.toFixed(2)} hectares of impervious surfaces to functional green space under UN SDG 15.3.1 standards.`;
+    `This policy resolution presents a youth-led, evidence-based climate resilience mandate for ${district_name}. Prepared by ${author_name} (${orgOrSchoolText}) using the TurnGreen simulation engine, this proposal demonstrates how $${totalSpend.toLocaleString()} invested across 5 planning turns achieves ${scorecard.total_heat_reduction_display} in surface cooling, achieves ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of total modeled retention during design storm events (${(scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ runoff reduction over baseline), de-paves ${scorecard.ground_depaved_ha.toFixed(2)} hectares of unique impervious ground, and implements ${totalGroundInterventions.toFixed(2)} hectares of total ground interventions under UN SDG 15.3.1 standards.`;
 
   const docBase = {
     resolution_number: resNumber,
