@@ -49,6 +49,8 @@ export interface ClientTurnInput {
   budget_allocated: number;
 }
 
+export type PolicyTurnInput = ClientTurnInput;
+
 export interface ClientSessionConfig {
   session_id?: string;
   total_area_hectares?: number;
@@ -363,6 +365,14 @@ export class TurnGreenClientSession {
     this.turnsPlayed.push(turnRecord);
 
     return simResult;
+  }
+
+  /**
+   * Legacy 1-action turn simulation:
+   * Alias / wrapper for submitTurn to ensure complete backwards compatibility.
+   */
+  public playTurn(input: PolicyTurnInput): SimulationResult {
+    return this.submitTurn(input);
   }
 
   /**
