@@ -124,7 +124,7 @@ const SIMULATE_POLICY_TURN_TOOL: Tool = {
 const SIMULATE_YEAR_PLAN_TOOL: Tool = {
   name: "simulate_year_plan",
   description:
-    "Simulates an entire year's climate action plan containing a list of multiple urban policy interventions in TurnGreen. Calculates aggregated biophysical shifts (temperature drop, stormwater retention, UN SDG 15.3.1 land restoration) using Stanford InVEST Urban Cooling & Urban Flood Risk equations. Stateless: accepts current state and project list, returns updated state, aggregated youth scorecard, and comprehensive scientific metadata payload.",
+    "Simulates an entire year's climate action plan containing a list of multiple urban policy interventions in TurnGreen. Calculates aggregated biophysical shifts (temperature drop, stormwater retention, UN SDG 15.3.1 land restoration) using Stanford InVEST Urban Cooling & Urban Flood Risk equations. Stateless: accepts current state and project list, returns updated state, aggregated youth scorecard, and comprehensive scientific metadata payload. Executes projects in deterministic canonical sequence: permeable_pavement (1) -> bioswales (2) -> pocket_parks (3) -> urban_canopy_trees (4) -> green_roofs (5) -> cool_roofs (6). Each executed project returns both 'original_index' (input position) and 'executed_index' (execution sequence order).",
   inputSchema: {
     type: "object",
     properties: {
@@ -146,7 +146,7 @@ const SIMULATE_YEAR_PLAN_TOOL: Tool = {
       },
       projects: {
         type: "array",
-        description: "List of urban policy interventions to execute in this year plan",
+        description: "List of urban policy interventions to execute in this year plan. Note: Regardless of input order, projects are deterministically executed according to canonical ecological staging (ground prep & permeable pavement -> bioswales -> pocket parks -> tree canopy -> green roofs -> cool roofs). Each executed project returns its original_index and executed_index.",
         items: {
           type: "object",
           properties: {
