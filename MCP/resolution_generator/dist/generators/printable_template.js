@@ -222,7 +222,7 @@ export function renderSinglePageHtml(doc) {
       </div>
       <div class="score-card">
         <span class="val">${escapeHtml(doc.biophysical_scorecard.ground_depaved_ha.toFixed(2))} ha</span>
-        <span class="lbl">Ground De-Paved (${escapeHtml(doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2))} ha Roofs)</span>
+        <span class="lbl">Net Ground De-Paved (${escapeHtml((doc.biophysical_scorecard.total_ground_interventions_ha ?? doc.biophysical_scorecard.ground_depaved_ha).toFixed(2))} ha Total Ground Interventions)</span>
       </div>
       <div class="score-card">
         <span class="val">SDG 15.3.1</span>
@@ -269,6 +269,11 @@ export function renderResolutionMarkdown(doc) {
 > *Scientific Model:* \`${tp.evidence_citation}\`
 `)
         .join("\n");
+    const totalGroundInterventions = doc.biophysical_scorecard.total_ground_interventions_ha ?? doc.biophysical_scorecard.ground_depaved_ha;
+    const bareSoilRestored = doc.biophysical_scorecard.bare_soil_vegetated_ha ?? 0;
+    const groundInterventionsRow = totalGroundInterventions > doc.biophysical_scorecard.ground_depaved_ha
+        ? `| **Total Ground Ecological Interventions** | **${totalGroundInterventions.toFixed(2)} hectares** (including ${bareSoilRestored.toFixed(2)} ha bare-soil restoration & permeable retrofits) | Gross Intervention Footprint |\n`
+        : "";
     return `# YOUTH CLIMATE RESILIENCE MANDATE
 **Resolution Number:** ${doc.resolution_number}  
 **Target Body:** ${doc.target_body}  
@@ -286,8 +291,8 @@ ${doc.executive_summary}
 | :--- | :--- | :--- |
 | **Heatwave Surface Cooling** | **${doc.biophysical_scorecard.total_heat_reduction_display}** | Stanford InVEST Urban Cooling Model |
 | **Total Modeled Stormwater Retention** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³ / 50-mm storm** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal; ${(doc.biophysical_scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ runoff reduction) | USDA-SCS Curve Number Hydrology |
-| **Net Ground De-Paved** | **${doc.biophysical_scorecard.ground_depaved_ha.toFixed(2)} hectares** | ESA WorldCover 10m (Class 50 &rarr; 10/20) |
-| **Rooftop Retrofits** | **${doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2)} hectares** | High-Albedo & Vegetative Roofs |
+| **Net Ground De-Paved (Asphalt Removed)** | **${doc.biophysical_scorecard.ground_depaved_ha.toFixed(2)} hectares** | ESA WorldCover 10m (Class 50 &rarr; 10/20) |
+${groundInterventionsRow}| **Rooftop Retrofits** | **${doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2)} hectares** | High-Albedo & Vegetative Roofs |
 | **Global Standard Alignment** | **UN SDG 15.3.1 Target** | UNCCD Trends.Earth Avoided Degradation |
 | **Budget Efficiency** | **${doc.biophysical_scorecard.budget_efficiency_rating}** | Municipal Cost-Avoidance Analysis |
 

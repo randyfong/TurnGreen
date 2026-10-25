@@ -58,7 +58,10 @@ export declare const CumulativeMetricsSchema: z.ZodObject<{
     baseline_runoff_reduction_m3: z.ZodOptional<z.ZodNumber>;
     net_stormwater_retained_gallons: z.ZodDefault<z.ZodNumber>;
     total_area_converted_ha: z.ZodDefault<z.ZodNumber>;
+    net_built_up_reduced_ha: z.ZodOptional<z.ZodNumber>;
     ground_depaved_ha: z.ZodOptional<z.ZodNumber>;
+    total_ground_interventions_ha: z.ZodOptional<z.ZodNumber>;
+    bare_soil_vegetated_ha: z.ZodOptional<z.ZodNumber>;
     rooftop_treated_ha: z.ZodOptional<z.ZodNumber>;
     depaved_impervious_pct: z.ZodDefault<z.ZodNumber>;
     overall_sustainability_score: z.ZodDefault<z.ZodNumber>;
@@ -76,7 +79,10 @@ export declare const CumulativeMetricsSchema: z.ZodObject<{
     community_cheer_score: number;
     total_modeled_retention_m3?: number | undefined;
     baseline_runoff_reduction_m3?: number | undefined;
+    net_built_up_reduced_ha?: number | undefined;
     ground_depaved_ha?: number | undefined;
+    total_ground_interventions_ha?: number | undefined;
+    bare_soil_vegetated_ha?: number | undefined;
     rooftop_treated_ha?: number | undefined;
 }, {
     total_budget_spent?: number | undefined;
@@ -88,7 +94,10 @@ export declare const CumulativeMetricsSchema: z.ZodObject<{
     baseline_runoff_reduction_m3?: number | undefined;
     net_stormwater_retained_gallons?: number | undefined;
     total_area_converted_ha?: number | undefined;
+    net_built_up_reduced_ha?: number | undefined;
     ground_depaved_ha?: number | undefined;
+    total_ground_interventions_ha?: number | undefined;
+    bare_soil_vegetated_ha?: number | undefined;
     rooftop_treated_ha?: number | undefined;
     depaved_impervious_pct?: number | undefined;
     overall_sustainability_score?: number | undefined;
@@ -154,7 +163,10 @@ export declare const SessionHistorySchema: z.ZodObject<{
         baseline_runoff_reduction_m3: z.ZodOptional<z.ZodNumber>;
         net_stormwater_retained_gallons: z.ZodDefault<z.ZodNumber>;
         total_area_converted_ha: z.ZodDefault<z.ZodNumber>;
+        net_built_up_reduced_ha: z.ZodOptional<z.ZodNumber>;
         ground_depaved_ha: z.ZodOptional<z.ZodNumber>;
+        total_ground_interventions_ha: z.ZodOptional<z.ZodNumber>;
+        bare_soil_vegetated_ha: z.ZodOptional<z.ZodNumber>;
         rooftop_treated_ha: z.ZodOptional<z.ZodNumber>;
         depaved_impervious_pct: z.ZodDefault<z.ZodNumber>;
         overall_sustainability_score: z.ZodDefault<z.ZodNumber>;
@@ -172,7 +184,10 @@ export declare const SessionHistorySchema: z.ZodObject<{
         community_cheer_score: number;
         total_modeled_retention_m3?: number | undefined;
         baseline_runoff_reduction_m3?: number | undefined;
+        net_built_up_reduced_ha?: number | undefined;
         ground_depaved_ha?: number | undefined;
+        total_ground_interventions_ha?: number | undefined;
+        bare_soil_vegetated_ha?: number | undefined;
         rooftop_treated_ha?: number | undefined;
     }, {
         total_budget_spent?: number | undefined;
@@ -184,7 +199,10 @@ export declare const SessionHistorySchema: z.ZodObject<{
         baseline_runoff_reduction_m3?: number | undefined;
         net_stormwater_retained_gallons?: number | undefined;
         total_area_converted_ha?: number | undefined;
+        net_built_up_reduced_ha?: number | undefined;
         ground_depaved_ha?: number | undefined;
+        total_ground_interventions_ha?: number | undefined;
+        bare_soil_vegetated_ha?: number | undefined;
         rooftop_treated_ha?: number | undefined;
         depaved_impervious_pct?: number | undefined;
         overall_sustainability_score?: number | undefined;
@@ -235,7 +253,10 @@ export declare const SessionHistorySchema: z.ZodObject<{
         community_cheer_score: number;
         total_modeled_retention_m3?: number | undefined;
         baseline_runoff_reduction_m3?: number | undefined;
+        net_built_up_reduced_ha?: number | undefined;
         ground_depaved_ha?: number | undefined;
+        total_ground_interventions_ha?: number | undefined;
+        bare_soil_vegetated_ha?: number | undefined;
         rooftop_treated_ha?: number | undefined;
     } | undefined;
     learning_gain?: {
@@ -272,7 +293,10 @@ export declare const SessionHistorySchema: z.ZodObject<{
         baseline_runoff_reduction_m3?: number | undefined;
         net_stormwater_retained_gallons?: number | undefined;
         total_area_converted_ha?: number | undefined;
+        net_built_up_reduced_ha?: number | undefined;
         ground_depaved_ha?: number | undefined;
+        total_ground_interventions_ha?: number | undefined;
+        bare_soil_vegetated_ha?: number | undefined;
         rooftop_treated_ha?: number | undefined;
         depaved_impervious_pct?: number | undefined;
         overall_sustainability_score?: number | undefined;
@@ -349,7 +373,10 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             baseline_runoff_reduction_m3: z.ZodOptional<z.ZodNumber>;
             net_stormwater_retained_gallons: z.ZodDefault<z.ZodNumber>;
             total_area_converted_ha: z.ZodDefault<z.ZodNumber>;
+            net_built_up_reduced_ha: z.ZodOptional<z.ZodNumber>;
             ground_depaved_ha: z.ZodOptional<z.ZodNumber>;
+            total_ground_interventions_ha: z.ZodOptional<z.ZodNumber>;
+            bare_soil_vegetated_ha: z.ZodOptional<z.ZodNumber>;
             rooftop_treated_ha: z.ZodOptional<z.ZodNumber>;
             depaved_impervious_pct: z.ZodDefault<z.ZodNumber>;
             overall_sustainability_score: z.ZodDefault<z.ZodNumber>;
@@ -367,7 +394,10 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             community_cheer_score: number;
             total_modeled_retention_m3?: number | undefined;
             baseline_runoff_reduction_m3?: number | undefined;
+            net_built_up_reduced_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
+            total_ground_interventions_ha?: number | undefined;
+            bare_soil_vegetated_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
         }, {
             total_budget_spent?: number | undefined;
@@ -379,7 +409,10 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             baseline_runoff_reduction_m3?: number | undefined;
             net_stormwater_retained_gallons?: number | undefined;
             total_area_converted_ha?: number | undefined;
+            net_built_up_reduced_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
+            total_ground_interventions_ha?: number | undefined;
+            bare_soil_vegetated_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
             depaved_impervious_pct?: number | undefined;
             overall_sustainability_score?: number | undefined;
@@ -430,7 +463,10 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             community_cheer_score: number;
             total_modeled_retention_m3?: number | undefined;
             baseline_runoff_reduction_m3?: number | undefined;
+            net_built_up_reduced_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
+            total_ground_interventions_ha?: number | undefined;
+            bare_soil_vegetated_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
         } | undefined;
         learning_gain?: {
@@ -467,7 +503,10 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             baseline_runoff_reduction_m3?: number | undefined;
             net_stormwater_retained_gallons?: number | undefined;
             total_area_converted_ha?: number | undefined;
+            net_built_up_reduced_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
+            total_ground_interventions_ha?: number | undefined;
+            bare_soil_vegetated_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
             depaved_impervious_pct?: number | undefined;
             overall_sustainability_score?: number | undefined;
@@ -515,7 +554,10 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             community_cheer_score: number;
             total_modeled_retention_m3?: number | undefined;
             baseline_runoff_reduction_m3?: number | undefined;
+            net_built_up_reduced_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
+            total_ground_interventions_ha?: number | undefined;
+            bare_soil_vegetated_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
         } | undefined;
         learning_gain?: {
@@ -557,7 +599,10 @@ export declare const GenerateYouthResolutionInputSchema: z.ZodObject<{
             baseline_runoff_reduction_m3?: number | undefined;
             net_stormwater_retained_gallons?: number | undefined;
             total_area_converted_ha?: number | undefined;
+            net_built_up_reduced_ha?: number | undefined;
             ground_depaved_ha?: number | undefined;
+            total_ground_interventions_ha?: number | undefined;
+            bare_soil_vegetated_ha?: number | undefined;
             rooftop_treated_ha?: number | undefined;
             depaved_impervious_pct?: number | undefined;
             overall_sustainability_score?: number | undefined;
@@ -592,6 +637,9 @@ export interface BiophysicalScorecard {
     total_stormwater_retained_gallons: number;
     total_depaved_ha: number;
     ground_depaved_ha: number;
+    net_built_up_reduced_ha?: number;
+    total_ground_interventions_ha?: number;
+    bare_soil_vegetated_ha?: number;
     rooftop_treated_ha: number;
     total_trees_or_greenspace_pct_increase: number;
     un_sdg_15_3_1_avoided_degradation_score: string;

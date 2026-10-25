@@ -42,13 +42,18 @@ export function buildActionableTalkingPoints(authorName, districtName, targetBod
         policy_demand: `Adopt a municipal 'De-Pave First' ordinance prioritizing permeable pavement and roadside bioswales during scheduled roadway and sidewalk capital renewals.`
     };
     // Point 3: Accountability, UN SDG 15.3.1 Compliance & 5-Year Capital Allocation (1:00 - 1:30)
+    const totalGroundInterventions = scorecard.total_ground_interventions_ha ?? scorecard.ground_depaved_ha;
+    const bareSoilRestored = scorecard.bare_soil_vegetated_ha ?? 0;
+    const groundDetailStr = totalGroundInterventions > scorecard.ground_depaved_ha
+        ? `across ${totalGroundInterventions.toFixed(2)} hectares of total ground interventions (including ${bareSoilRestored.toFixed(2)} hectares of bare soil restoration and permeable retrofits)`
+        : `across ${totalGroundInterventions.toFixed(2)} hectares of total ground interventions`;
     const point3 = {
         id: 3,
         timeframe: "1:00 - 1:30",
         topic_title: "Verifiable Land Degradation Neutrality & Youth Future",
         hook: `As young residents who will inherit our city's public infrastructure, we are presenting data-backed simulation evidence to guide practical municipal planning.`,
         evidence_citation: `${UN_SDG_15_3_1_STANDARD.indicator} & ${UN_SDG_15_3_1_STANDARD.trends_earth_metric}`,
-        recommended_script: `By de-paving ${scorecard.ground_depaved_ha.toFixed(2)} hectares of impervious ground and retrofitting ${scorecard.rooftop_treated_ha.toFixed(2)} hectares of rooftop area, ${districtName} directly advances Land Degradation Neutrality (LDN) benchmarks under UN SDG Indicator 15.3.1. Our 5-year simulation models verified biophysical trade-offs within municipal budget limits to safeguard neighborhood resilience.`,
+        recommended_script: `By de-paving ${scorecard.ground_depaved_ha.toFixed(2)} hectares of unique impervious ground and retrofitting ${scorecard.rooftop_treated_ha.toFixed(2)} hectares of rooftop area ${groundDetailStr}, ${districtName} directly advances Land Degradation Neutrality (LDN) benchmarks under UN SDG Indicator 15.3.1. Our 5-year simulation models verified biophysical trade-offs within municipal budget limits to safeguard neighborhood resilience.`,
         policy_demand: `Formally incorporate these natural infrastructure targets into the municipal General Plan update and involve youth delegates in capital improvement budget reviews.`
     };
     return [point1, point2, point3];
