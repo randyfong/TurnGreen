@@ -22,8 +22,13 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
   let singleStormRunoffReductionM3 = 0;
   let baselineRunoffReductionM3: number | undefined = undefined;
   let groundDepavedHa = 0;
+  let totalGroundInterventionsHa = 0;
+  let bareSoilVegetatedHa = 0;
   let rooftopTreatedHa = 0;
   let totalSpend = 0;
+
+  // Track turn conversions
+  let accumulatedBuiltUpReductionHa = 0;
 
   for (const t of turns) {
     totalSpend += t.budget_allocated;
@@ -40,30 +45,64 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
     if (t.intervention_id === "cool_roofs" || t.intervention_id === "green_roofs") {
       rooftopTreatedHa += ha;
     } else {
-      // Ground de-paving: urban_canopy_trees, permeable_pavement, bioswales, pocket_parks
-      groundDepavedHa += ha;
+      // Gross ground-level intervention footprint
+      totalGroundInterventionsHa += ha;
+
+      // Unique asphalt/impervious removal vs bare-soil restoration:
+      // - urban_canopy_trees: 70% built_up_50, 30% bare_soil_60
+      // - bioswales: 80% built_up_50, 20% bare_soil_60
+      // - permeable_pavement: 100% built_up_50
+      // - pocket_parks: 100% built_up_50
+      let builtUpRatio = 1.0;
+      let bareSoilRatio = 0.0;
+      if (t.intervention_id === "urban_canopy_trees") {
+        builtUpRatio = 0.7;
+        bareSoilRatio = 0.3;
+      } else if (t.intervention_id === "bioswales") {
+        builtUpRatio = 0.8;
+        bareSoilRatio = 0.2;
+      }
+
+      accumulatedBuiltUpReductionHa += ha * builtUpRatio;
+      bareSoilVegetatedHa += ha * bareSoilRatio;
     }
   }
 
-  // If explicit final_metrics are provided, prioritize them
-  if (session_history.final_metrics) {
-    if (session_history.final_metrics.net_cooling_celsius) {
-      totalCoolingC = session_history.final_metrics.net_cooling_celsius;
+  // Base estimate for unique ground de-paved area from turn accumulation
+  groundDepavedHa = accumulatedBuiltUpReductionHa;
+
+  // If explicit baseline & final metrics exist, compute unique de-paving from net built-up reduction:
+  // Net built-up reduction is (baseline_built_up_pct - final_built_up_pct) * total_district_ha / 100
+  const baselineBuiltUpPct = session_history.baseline?.built_up_pct;
+  const finalMetrics = session_history.final_metrics;
+
+  if (finalMetrics) {
+    if (finalMetrics.net_cooling_celsius) {
+      totalCoolingC = finalMetrics.net_cooling_celsius;
     }
-    if (session_history.final_metrics.net_stormwater_retained_m3) {
-      singleStormRunoffReductionM3 = session_history.final_metrics.net_stormwater_retained_m3;
+    if (finalMetrics.net_stormwater_retained_m3) {
+      singleStormRunoffReductionM3 = finalMetrics.net_stormwater_retained_m3;
     }
-    if (session_history.final_metrics.total_modeled_retention_m3) {
-      singleStormRunoffReductionM3 = session_history.final_metrics.total_modeled_retention_m3;
+    if (finalMetrics.total_modeled_retention_m3) {
+      singleStormRunoffReductionM3 = finalMetrics.total_modeled_retention_m3;
     }
-    if (session_history.final_metrics.baseline_runoff_reduction_m3 !== undefined) {
-      baselineRunoffReductionM3 = session_history.final_metrics.baseline_runoff_reduction_m3;
+    if (finalMetrics.baseline_runoff_reduction_m3 !== undefined) {
+      baselineRunoffReductionM3 = finalMetrics.baseline_runoff_reduction_m3;
     }
-    if (session_history.final_metrics.ground_depaved_ha !== undefined) {
-      groundDepavedHa = session_history.final_metrics.ground_depaved_ha;
+    if (finalMetrics.rooftop_treated_ha !== undefined) {
+      rooftopTreatedHa = finalMetrics.rooftop_treated_ha;
     }
-    if (session_history.final_metrics.rooftop_treated_ha !== undefined) {
-      rooftopTreatedHa = session_history.final_metrics.rooftop_treated_ha;
+    if (finalMetrics.total_ground_interventions_ha !== undefined) {
+      totalGroundInterventionsHa = finalMetrics.total_ground_interventions_ha;
+    }
+    if (finalMetrics.bare_soil_vegetated_ha !== undefined) {
+      bareSoilVegetatedHa = finalMetrics.bare_soil_vegetated_ha;
+    }
+
+    if (finalMetrics.net_built_up_reduced_ha !== undefined) {
+      groundDepavedHa = finalMetrics.net_built_up_reduced_ha;
+    } else if (finalMetrics.ground_depaved_ha !== undefined) {
+      groundDepavedHa = finalMetrics.ground_depaved_ha;
     }
   }
 
@@ -75,10 +114,16 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
     groundDepavedHa = 2.2;
     rooftopTreatedHa = 1.05;
   }
+  if (totalGroundInterventionsHa === 0) {
+    totalGroundInterventionsHa = groundDepavedHa;
+  }
 
   const totalCoolingF = totalCoolingC * 1.8;
   const stormwaterGallons = Math.round(singleStormRunoffReductionM3 * 264.172);
-  const totalCombinedHa = Number((groundDepavedHa + rooftopTreatedHa).toFixed(2));
+  const roundedGroundDepaved = Number(groundDepavedHa.toFixed(2));
+  const roundedTotalGroundInterventions = Number(totalGroundInterventionsHa.toFixed(2));
+  const roundedBareSoil = Number(bareSoilVegetatedHa.toFixed(2));
+  const roundedRooftop = Number(rooftopTreatedHa.toFixed(2));
 
   const scorecard: BiophysicalScorecard = {
     total_heat_reduction_display: `-${totalCoolingC.toFixed(1)}°C (-${totalCoolingF.toFixed(1)}°F)`,
@@ -88,9 +133,12 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
     total_modeled_retention_m3: Math.round(singleStormRunoffReductionM3),
     baseline_runoff_reduction_m3: Math.round(baselineRunoffReductionM3),
     total_stormwater_retained_gallons: stormwaterGallons,
-    total_depaved_ha: Number(groundDepavedHa.toFixed(2)),
-    ground_depaved_ha: Number(groundDepavedHa.toFixed(2)),
-    rooftop_treated_ha: Number(rooftopTreatedHa.toFixed(2)),
+    total_depaved_ha: roundedGroundDepaved,
+    ground_depaved_ha: roundedGroundDepaved,
+    net_built_up_reduced_ha: roundedGroundDepaved,
+    total_ground_interventions_ha: roundedTotalGroundInterventions,
+    bare_soil_vegetated_ha: roundedBareSoil,
+    rooftop_treated_ha: roundedRooftop,
     total_trees_or_greenspace_pct_increase: Math.min(25, Number((groundDepavedHa * 2.5).toFixed(1))),
     un_sdg_15_3_1_avoided_degradation_score: "Compliant (Avoided Artificial Degradation)",
     budget_efficiency_rating: "High Impact (Direct avoided flood damage & heat relief)"
