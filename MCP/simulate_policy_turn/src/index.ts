@@ -124,7 +124,7 @@ const SIMULATE_POLICY_TURN_TOOL: Tool = {
 const SIMULATE_YEAR_PLAN_TOOL: Tool = {
   name: "simulate_year_plan",
   description:
-    "Simulates an entire year's climate action plan containing a list of multiple urban policy interventions in TurnGreen. Calculates aggregated biophysical shifts (temperature drop, stormwater retention, UN SDG 15.3.1 land restoration) using Stanford InVEST Urban Cooling & Urban Flood Risk equations. Stateless: accepts current state and project list, returns updated state, aggregated youth scorecard, and comprehensive scientific metadata payload. Executes projects in deterministic canonical sequence: permeable_pavement (1) -> bioswales (2) -> pocket_parks (3) -> urban_canopy_trees (4) -> green_roofs (5) -> cool_roofs (6). Each executed project returns both 'original_index' (input position) and 'executed_index' (execution sequence order).",
+    "Simulates an entire year's climate action plan containing a list of multiple urban policy interventions in TurnGreen. Calculates aggregated biophysical shifts (temperature drop, stormwater retention, UN SDG 15.3.1 land restoration) using Stanford InVEST Urban Cooling & Urban Flood Risk equations. Stateless: accepts current state and project list, returns updated state, aggregated youth scorecard, and comprehensive scientific metadata payload. Executes projects in deterministic canonical sequence: permeable_pavement (1) -> bioswales (2) -> pocket_parks (3) -> urban_canopy_trees (4) -> green_roofs (5) -> cool_roofs (6). Each executed project returns both 'original_index' (input position) and 'executed_index' (execution sequence order). ARCHITECTURAL RESPONSIBILITIES: (1) The simulation tool is strictly stateless; saving the completed year's state remains the game backend's responsibility. (2) The game backend is responsible for applying any random gameplay events (such as vegetation-loss events) to current_state.land_cover prior to calling the simulation tool. The tool's dry-season metrics describe modeled biophysical stress conditions and do NOT replace that game event.",
   inputSchema: {
     type: "object",
     properties: {
@@ -485,6 +485,12 @@ export interface AnnualDrySeasonResult {
  * 1. Evaluates low precipitation (P = 10 mm) infiltration and crusting risk.
  * 2. Evaluates high-temperature evapotranspiration attenuation across shallow vs deep-root vegetation.
  * 3. Derives drought resilience score and temperature under peak dry-heat stress.
+ * 
+ * ARCHITECTURAL BOUNDARY:
+ * - The simulation MCP tool is stateless and models dry-season biophysical stress under current land cover;
+ *   it does NOT generate random game events or replace game-backend event systems.
+ * - The game backend is responsible for applying vegetation-loss events to current_state.land_cover prior to calling this tool.
+ * - Persisting and saving the completed year's state remains strictly the game backend's responsibility.
  */
 export function applyAnnualDrySeason(
   workingLandCover: LandCoverDistribution,

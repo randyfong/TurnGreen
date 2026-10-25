@@ -507,6 +507,17 @@ export interface ExecutedPlanProject {
     area_converted_hectares: number;
     pct_area_converted: number;
 }
+/**
+ * Result returned by the simulate_year_plan MCP tool.
+ *
+ * ARCHITECTURAL RESPONSIBILITIES:
+ * - Stateless Execution: The simulation MCP tool is completely stateless. Saving and persisting
+ *   the completed year's state (`next_state`) remains strictly the game backend's responsibility.
+ * - Dry-Season Mechanics: The game backend is responsible for applying vegetation-loss events
+ *   to `current_state.land_cover` prior to calling this MCP tool. The dry-season impact metrics
+ *   here describe modeled biophysical stress conditions under current land cover; they do not replace
+ *   game events.
+ */
 export interface YearPlanSimulationResult {
     year?: number;
     projects_executed: ExecutedPlanProject[];
