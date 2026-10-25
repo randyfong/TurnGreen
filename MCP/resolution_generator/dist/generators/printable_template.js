@@ -199,7 +199,7 @@ export function renderSinglePageHtml(doc) {
   <div class="page-container">
     <div class="header-banner">
       <div class="title-block">
-        <h1>Youth Climate Resilience Mandate</h1>
+        <h1>Simulated Youth Policy Mandate (Educational Scenario)</h1>
         <h2>Policy Resolution ${escapeHtml(doc.resolution_number)} &bull; ${escapeHtml(doc.district_name)}</h2>
       </div>
       <div class="meta-box">
@@ -244,8 +244,11 @@ export function renderSinglePageHtml(doc) {
     </div>
 
     <div class="footer-bar">
-      <span>TurnGreen Civic Simulation Engine &bull; Science: Stanford InVEST &bull; ESA WorldCover 10m &bull; UNCCD Trends.Earth</span>
-      <span>Verified Single-Page Youth Policy Mandate</span>
+      <span>TurnGreen Civic Simulation Engine &bull; Modeling Framework: Stanford InVEST &bull; ESA WorldCover 10m &bull; USDA-SCS NEH-4</span>
+      <span>Simulated Youth Policy Mandate (Educational Scenario)</span>
+    </div>
+    <div style="font-size: 6pt; color: #718096; margin-top: 3px; font-style: italic; line-height: 1.2;">
+      Educational Simulation Notice: Metric outputs are simulation estimates generated for civic learning using simplified biophysical formulas (InVEST urban cooling, USDA-SCS hydrology, and UNCCD SDG 15.3.1 definitions). Independent scientific accuracy, site-specific 100m cooling radii, numeric financial ROI, and regulatory compliance are not established by this tool.
     </div>
   </div>
 </body>
@@ -274,7 +277,7 @@ export function renderResolutionMarkdown(doc) {
     const groundInterventionsRow = totalGroundInterventions > doc.biophysical_scorecard.ground_depaved_ha
         ? `| **Total Ground Ecological Interventions** | **${totalGroundInterventions.toFixed(2)} hectares** (including ${bareSoilRestored.toFixed(2)} ha bare-soil restoration & permeable retrofits) | Gross Intervention Footprint |\n`
         : "";
-    return `# YOUTH CLIMATE RESILIENCE MANDATE
+    return `# YOUTH CLIMATE RESILIENCE MANDATE (SIMULATED SCENARIO)
 **Resolution Number:** ${doc.resolution_number}  
 **Target Body:** ${doc.target_body}  
 **District:** ${doc.district_name}  
@@ -287,13 +290,13 @@ export function renderResolutionMarkdown(doc) {
 ${doc.executive_summary}
 
 ## Biophysical Impact Scorecard
-| Metric | Value | Scientific Validation Framework |
+| Metric | Value | Simulation Modeling Framework |
 | :--- | :--- | :--- |
 | **Heatwave Surface Cooling** | **${doc.biophysical_scorecard.total_heat_reduction_display}** | Stanford InVEST Urban Cooling Model |
 | **Total Modeled Stormwater Retention** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³ / 50-mm storm** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal; ${(doc.biophysical_scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ runoff reduction) | USDA-SCS Curve Number Hydrology |
 | **Net Ground De-Paved (Asphalt Removed)** | **${doc.biophysical_scorecard.ground_depaved_ha.toFixed(2)} hectares** | ESA WorldCover 10m (Class 50 &rarr; 10/20) |
 ${groundInterventionsRow}| **Rooftop Retrofits** | **${doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2)} hectares** | High-Albedo & Vegetative Roofs |
-| **Global Standard Alignment** | **UN SDG 15.3.1 Target** | UNCCD Trends.Earth Avoided Degradation |
+| **SDG 15.3.1 Alignment** | **Modeled Avoided Degradation** | UNCCD Trends.Earth Framework |
 | **Budget Efficiency** | **${doc.biophysical_scorecard.budget_efficiency_rating}** | Municipal Cost-Avoidance Analysis |
 
 ---
@@ -309,7 +312,7 @@ ${resolvedMd}
 ${tpMd}
 
 ---
-*Grounded in verified scientific models: Stanford Natural Capital Project (InVEST v3.14), ESA WorldCover 10m, and UNCCD Land Degradation Neutrality Framework (SDG 15.3.1).*
+*Educational Simulation Notice: Metric outputs are simulation estimates generated for civic learning using simplified biophysical formulas (InVEST urban cooling, USDA-SCS hydrology, and UNCCD SDG 15.3.1 definitions). Independent scientific accuracy, site-specific 100m cooling radii, numeric financial ROI, and regulatory compliance are not established by this tool.*
 `;
 }
 function escapeHtml(text) {

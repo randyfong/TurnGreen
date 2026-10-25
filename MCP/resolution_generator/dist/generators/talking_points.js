@@ -28,7 +28,7 @@ export function buildActionableTalkingPoints(authorName, districtName, targetBod
         topic_title: "Neighborhood Heat Mitigation & Surface Cooling",
         hook: `Good evening members of the ${targetBody}. My name is ${authorName}, speaking on behalf of youth in ${districtName}. In our community, summer heatwaves are intensifying on unshaded asphalt streets.`,
         evidence_citation: `${INVEST_COOLING_STANDARD.model}`,
-        recommended_script: `Our empirical simulation demonstrates that with strategic natural infrastructure and surface retrofits, ${districtName} can achieve a verified ${scorecard.total_heat_reduction_display} surface cooling reduction. Grounded in Stanford's InVEST urban cooling model, expanded shade canopy and reflective surfaces reduce solar radiation absorption and increase evaporative cooling along neighborhood corridors.`,
+        recommended_script: `Our empirical simulation demonstrates that with strategic natural infrastructure and surface retrofits, ${districtName} can achieve an estimated ${scorecard.total_heat_reduction_display} in modeled surface cooling. Grounded in Stanford's InVEST urban cooling model algorithms, expanded shade canopy and reflective surfaces reduce solar radiation absorption and increase evaporative cooling along neighborhood corridors, reflecting regional InVEST-based algorithmic estimates rather than guaranteed on-the-ground microclimate field measurements.`,
         policy_demand: `Allocate dedicated capital improvement funding to plant shade canopy corridors and cool surfaces across high-heat transit routes in ${districtName}.`
     };
     // Point 2: Stormwater Mitigation & Flood Damage Prevention (0:30 - 1:00)
@@ -38,10 +38,10 @@ export function buildActionableTalkingPoints(authorName, districtName, targetBod
         topic_title: "Green Stormwater Infrastructure for Flood Resilience",
         hook: `During severe cloudbursts and atmospheric storms in ${districtName}, stormwater overwhelms local street drainage because extensive surfaces are sealed with impervious pavement.`,
         evidence_citation: `${INVEST_FLOOD_STANDARD.model}`,
-        recommended_script: `Our 5-turn planning simulation demonstrates that de-paving obsolete asphalt and installing bio-retention soils achieves ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of total modeled retention during a 50-mm design storm—yielding an ${(scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ net reduction in surface runoff over baseline conditions. Modeled using USDA-SCS Curve Number hydrology, nature-based infiltration retains water on-site and mitigates street-level runoff.`,
+        recommended_script: `Our 5-turn planning simulation demonstrates that de-paving obsolete asphalt and installing bio-retention soils achieves ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ of total modeled retention during a 50-mm design storm—yielding an ${(scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ net reduction in surface runoff over baseline conditions, representing modeled simulation estimates using USDA-SCS Curve Number hydrology. Modeled using USDA-SCS Curve Number hydrology, nature-based infiltration retains water on-site and mitigates street-level runoff.`,
         policy_demand: `Adopt a municipal 'De-Pave First' ordinance prioritizing permeable pavement and roadside bioswales during scheduled roadway and sidewalk capital renewals.`
     };
-    // Point 3: Accountability, UN SDG 15.3.1 Compliance & 5-Year Capital Allocation (1:00 - 1:30)
+    // Point 3: Accountability, UN SDG 15.3.1 Alignment & 5-Year Capital Allocation (1:00 - 1:30)
     const totalGroundInterventions = scorecard.total_ground_interventions_ha ?? scorecard.ground_depaved_ha;
     const bareSoilRestored = scorecard.bare_soil_vegetated_ha ?? 0;
     const groundDetailStr = totalGroundInterventions > scorecard.ground_depaved_ha
@@ -50,10 +50,10 @@ export function buildActionableTalkingPoints(authorName, districtName, targetBod
     const point3 = {
         id: 3,
         timeframe: "1:00 - 1:30",
-        topic_title: "Verifiable Land Degradation Neutrality & Youth Future",
+        topic_title: "Modeled Land Degradation Neutrality & Youth Future",
         hook: `As young residents who will inherit our city's public infrastructure, we are presenting data-backed simulation evidence to guide practical municipal planning.`,
         evidence_citation: `${UN_SDG_15_3_1_STANDARD.indicator} & ${UN_SDG_15_3_1_STANDARD.trends_earth_metric}`,
-        recommended_script: `By de-paving ${scorecard.ground_depaved_ha.toFixed(2)} hectares of unique impervious ground and retrofitting ${scorecard.rooftop_treated_ha.toFixed(2)} hectares of rooftop area ${groundDetailStr}, ${districtName} directly advances Land Degradation Neutrality (LDN) benchmarks under UN SDG Indicator 15.3.1. Our 5-year simulation models verified biophysical trade-offs within municipal budget limits to safeguard neighborhood resilience.`,
+        recommended_script: `By de-paving ${scorecard.ground_depaved_ha.toFixed(2)} hectares of unique impervious ground and retrofitting ${scorecard.rooftop_treated_ha.toFixed(2)} hectares of rooftop area ${groundDetailStr}, ${districtName} directly advances Land Degradation Neutrality (LDN) benchmarks under UN SDG Indicator 15.3.1. Our 5-year educational simulation models biophysical trade-offs within municipal budget limits to safeguard neighborhood resilience.`,
         policy_demand: `Formally incorporate these natural infrastructure targets into the municipal General Plan update and involve youth delegates in capital improvement budget reviews.`
     };
     return [point1, point2, point3];

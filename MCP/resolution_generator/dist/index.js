@@ -91,6 +91,7 @@ const GENERATE_YOUTH_RESOLUTION_TOOL = {
                             total_ground_interventions_ha: { type: "number" },
                             bare_soil_vegetated_ha: { type: "number" },
                             rooftop_treated_ha: { type: "number" },
+                            depaved_impervious_pct: { type: "number" },
                             overall_sustainability_score: { type: "number" },
                             community_cheer_score: { type: "number" }
                         }

@@ -103,6 +103,73 @@ export function buildYouthResolution(input) {
     if (totalGroundInterventionsHa === 0) {
         totalGroundInterventionsHa = groundDepavedHa;
     }
+    // Calculate trees / greenspace increase dynamically:
+    // 1. Calculate net newly vegetated/canopy area from interventions:
+    // - Canopy trees (urban_canopy_trees): 1.0 canopy gain
+    // - Pocket parks (pocket_parks): 1.0 vegetated/canopy gain (0.5 grass + 0.5 tree)
+    // - Bioswales (bioswales): 1.0 vegetated gain (0.6 shrub + 0.4 grass)
+    // - Green roofs (green_roofs): 1.0 vegetated roof gain (grassland)
+    // - Permeable pavement (permeable_pavement): 0.3 vegetated gain (shrubland)
+    let simulatedGreenspaceGainHa = 0;
+    for (const t of turns) {
+        const ha = t.area_converted_ha ?? 0;
+        if (t.intervention_id === "urban_canopy_trees" || t.intervention_id === "pocket_parks" || t.intervention_id === "bioswales") {
+            simulatedGreenspaceGainHa += ha;
+        }
+        else if (t.intervention_id === "green_roofs") {
+            simulatedGreenspaceGainHa += ha;
+        }
+        else if (t.intervention_id === "permeable_pavement") {
+            simulatedGreenspaceGainHa += ha * 0.3;
+        }
+    }
+    if (simulatedGreenspaceGainHa === 0) {
+        simulatedGreenspaceGainHa = groundDepavedHa > 0 ? groundDepavedHa : 1.5;
+    }
+    simulatedGreenspaceGainHa = Number(simulatedGreenspaceGainHa.toFixed(2));
+    // Determine dynamic percentage increase:
+    let totalTreesOrGreenspacePctIncrease;
+    let greenspaceCalculationBasis;
+    let totalDistrictAreaHa = undefined;
+    // Check if baseline vegetated percentages are provided
+    const baseline = session_history.baseline;
+    const baselineVegPct = (baseline?.tree_cover_pct ?? 0) + (baseline?.grassland_pct ?? 0) + (baseline?.shrubland_pct ?? 0);
+    // If final_metrics provides total_area_converted_ha and depaved_impervious_pct, district area can be inferred:
+    // depaved_pct = (net_built_up_reduced_ha / total_district_ha) * 100
+    if (finalMetrics?.depaved_impervious_pct && finalMetrics.depaved_impervious_pct > 0 && groundDepavedHa > 0) {
+        totalDistrictAreaHa = Number(((groundDepavedHa / finalMetrics.depaved_impervious_pct) * 100).toFixed(1));
+    }
+    if (totalDistrictAreaHa && totalDistrictAreaHa > 0 && baselineVegPct > 0) {
+        // Net canopy & permeable land gain relative to baseline vegetated area
+        const baselineVegHa = (baselineVegPct / 100) * totalDistrictAreaHa;
+        const pctIncrease = (simulatedGreenspaceGainHa / baselineVegHa) * 100;
+        totalTreesOrGreenspacePctIncrease = Number(pctIncrease.toFixed(1));
+        greenspaceCalculationBasis = `Relative gain over ${baselineVegPct}% baseline vegetation in ${totalDistrictAreaHa} ha district`;
+    }
+    else if (totalDistrictAreaHa && totalDistrictAreaHa > 0) {
+        // Total intervention footprint divided by district area if district ha is known
+        const pctOfDistrict = (simulatedGreenspaceGainHa / totalDistrictAreaHa) * 100;
+        totalTreesOrGreenspacePctIncrease = Number(pctOfDistrict.toFixed(1));
+        greenspaceCalculationBasis = `Simulated intervention footprint as ${totalTreesOrGreenspacePctIncrease}% of ${totalDistrictAreaHa} ha district area`;
+    }
+    else if (baselineVegPct > 0 && groundDepavedHa > 0) {
+        // Use simulated intervention area scaled against standard municipal planning unit (50 ha default)
+        const defaultDistrictHa = 50;
+        const baselineVegHa = (baselineVegPct / 100) * defaultDistrictHa;
+        const pctIncrease = (simulatedGreenspaceGainHa / baselineVegHa) * 100;
+        totalTreesOrGreenspacePctIncrease = Number(pctIncrease.toFixed(1));
+        totalDistrictAreaHa = defaultDistrictHa;
+        greenspaceCalculationBasis = `Simulated gain relative to ${baselineVegPct}% baseline vegetation (scaled to 50 ha standard planning unit)`;
+    }
+    else {
+        // Explicit disclaimer label: simulated greenspace gain ha as percentage of total intervention scope
+        const totalInterventions = totalGroundInterventionsHa + rooftopTreatedHa;
+        const pctOfScope = totalInterventions > 0
+            ? Number(((simulatedGreenspaceGainHa / totalInterventions) * 100).toFixed(1))
+            : Number((simulatedGreenspaceGainHa * 10).toFixed(1));
+        totalTreesOrGreenspacePctIncrease = pctOfScope;
+        greenspaceCalculationBasis = `Simulated greenspace gain (${simulatedGreenspaceGainHa} ha, representing ${pctOfScope}% of simulated intervention scope)`;
+    }
     const totalCoolingF = totalCoolingC * 1.8;
     const stormwaterGallons = Math.round(singleStormRunoffReductionM3 * 264.172);
     const roundedGroundDepaved = Number(groundDepavedHa.toFixed(2));
@@ -123,8 +190,11 @@ export function buildYouthResolution(input) {
         total_ground_interventions_ha: roundedTotalGroundInterventions,
         bare_soil_vegetated_ha: roundedBareSoil,
         rooftop_treated_ha: roundedRooftop,
-        total_trees_or_greenspace_pct_increase: Math.min(25, Number((groundDepavedHa * 2.5).toFixed(1))),
-        un_sdg_15_3_1_avoided_degradation_score: "Compliant (Avoided Artificial Degradation)",
+        total_trees_or_greenspace_pct_increase: totalTreesOrGreenspacePctIncrease,
+        simulated_greenspace_gain_ha: simulatedGreenspaceGainHa,
+        total_district_area_ha: totalDistrictAreaHa,
+        greenspace_gain_calculation_basis: greenspaceCalculationBasis,
+        un_sdg_15_3_1_avoided_degradation_score: "Aligned with SDG 15.3.1 Framework (Simulated Avoided Degradation)",
         budget_efficiency_rating: "High Impact (Direct avoided flood damage & heat relief)"
     };
     // 2. Build 3 Actionable Talking Points
@@ -143,9 +213,9 @@ export function buildYouthResolution(input) {
         : `Youth Climate Delegates of ${district_name}`;
     const whereasClauses = [
         `urban heat islands and severe precipitation events directly impact residents, youth, and neighborhood infrastructure within ${district_name};`,
-        `empirical biophysical modeling through Stanford University's InVEST urban cooling engine demonstrates that expanding vegetative canopy and cool surfaces can lower local summer surface temperatures by ${scorecard.total_heat_reduction_display};`,
+        `educational simulation modeling based on Stanford University's InVEST urban cooling algorithms demonstrates that expanding vegetative canopy and cool surfaces can lower local summer surface temperatures by ${scorecard.total_heat_reduction_display};`,
         `impervious surface coverage (ESA WorldCover Class 50) exacerbates street-level runoff, and bio-retention interventions modeled by USDA-SCS Curve Number hydrology achieve a total modeled retention of ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ (retaining 80.4% of precipitation, an ${(scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ reduction in street runoff compared to baseline);`,
-        `the 5-year simulation scenario completed by ${author_name} (${orgOrSchoolText}) models verified land cover transitions aligning with UN SDG 15.3.1 Land Degradation Neutrality targets within a $${totalSpend.toLocaleString()} municipal budget.`
+        `the 5-year simulation scenario completed by ${author_name} (${orgOrSchoolText}) models simulated land cover transitions demonstrating alignment with UN SDG 15.3.1 Land Degradation Neutrality targets within a $${totalSpend.toLocaleString()} municipal budget.`
     ];
     const totalGroundInterventions = scorecard.total_ground_interventions_ha ?? scorecard.ground_depaved_ha;
     const bareSoilRestored = scorecard.bare_soil_vegetated_ha ?? 0;
