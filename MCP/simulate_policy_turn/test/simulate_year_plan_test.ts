@@ -109,4 +109,22 @@ assert.ok(finalLandCover.grassland_30 > baselineState.land_cover.grassland_30, "
 assert.ok(planResult.next_state.roof_treatment_hectares! > 0, "Cool roof retrofit area must be tracked");
 
 console.log("✓ Land cover strictly conserved at 100.00% without rounding bleed.");
+
+// Test 5: Dry Season Annual Dynamics Check
+console.log("\n[Test 5] Validating Annual Dry Season Mechanics...");
+const dryImpact = planResult.science_payload.dry_season_impact;
+assert.ok(dryImpact, "dry_season_impact must be populated in year plan payload");
+console.log(`  Drought Precipitation: ${dryImpact.drought_precipitation_mm} mm`);
+console.log(`  Drought Cooling Drop: ${dryImpact.drought_temp_drop_celsius}°C`);
+console.log(`  ET Loss under Drought: ${dryImpact.et_loss_pct}%`);
+console.log(`  Canopy Resilience Ratio: ${dryImpact.canopy_resilience_ratio}`);
+console.log(`  Dry Season Storm Retention: ${dryImpact.drought_retention_pct}%`);
+console.log(`  Sponge Description: ${dryImpact.sponge_capacity_description}`);
+
+assert.strictEqual(dryImpact.drought_precipitation_mm, 10, "Dry season precipitation depth must be 10 mm");
+assert.ok(dryImpact.et_loss_pct > 0, "Evapotranspiration must experience drought attenuation");
+assert.ok(dryImpact.canopy_resilience_ratio > 0, "Canopy deep-root resilience must be quantified");
+assert.ok(dryImpact.drought_retention_pct >= 0 && dryImpact.drought_retention_pct <= 100, "Retention pct must be valid");
+console.log("✓ Annual dry season biophysical dynamics verified!");
+
 console.log("\n🎉 ALL SIMULATE_YEAR_PLAN UNIT TESTS PASSED! 🎉\n");

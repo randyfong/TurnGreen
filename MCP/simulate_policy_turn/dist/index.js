@@ -2,8 +2,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { POLICY_INTERVENTIONS } from "./constants/esa_worldcover.js";
-import { calculateInVESTCooling } from "./models/invest_cooling.js";
-import { calculateInVESTFloodRisk } from "./models/invest_flood.js";
+import { calculateInVESTCooling, calculateDrySeasonCooling } from "./models/invest_cooling.js";
+import { calculateInVESTFloodRisk, calculateDrySeasonFloodRisk } from "./models/invest_flood.js";
 import { generateYouthSummary } from "./translators/youth_metrics.js";
 import { PolicyInputSchema, YearPlanInputSchema } from "./types.js";
 const SIMULATE_POLICY_TURN_TOOL = {
@@ -528,6 +528,10 @@ export function executeYearPlanSimulation(args) {
     // 3. Biophysical Modeling for Final Accumulated State
     const postCooling = calculateInVESTCooling(workingLandCover, priorCoolRoofBoost + accumulatedAlbedoBoost);
     const postFlood = calculateInVESTFloodRisk(workingLandCover, current_state.total_area_hectares);
+    // Apply Dry Season Dynamics Once Per Year
+    // Evaluates drought stress on vegetation ET and sponge-soil retention during low precipitation (10 mm)
+    const drySeasonCooling = calculateDrySeasonCooling(workingLandCover, priorCoolRoofBoost + accumulatedAlbedoBoost, 0.5);
+    const drySeasonFlood = calculateDrySeasonFloodRisk(workingLandCover, current_state.total_area_hectares, 10);
     // Baseline runoff determination
     const baselineLandCover = current_state.baseline_land_cover ?? initialLandCover;
     let baselineRunoffMm;
@@ -656,6 +660,16 @@ export function executeYearPlanSimulation(args) {
                 stormwater_retained_m3: postFlood.stormwater_retained_m3,
                 incremental_runoff_reduction_m3: incrementalRunoffReductionM3,
                 retention_efficiency_pct: postFlood.retention_efficiency_pct
+            },
+            dry_season_impact: {
+                drought_precipitation_mm: drySeasonFlood.design_storm_depth_mm,
+                drought_temp_drop_celsius: drySeasonCooling.surface_temperature_drop_c,
+                et_loss_pct: drySeasonCooling.et_loss_pct,
+                canopy_resilience_ratio: drySeasonCooling.canopy_et_retention_ratio,
+                drought_retention_pct: drySeasonFlood.drought_retention_pct,
+                sponge_capacity_description: drySeasonFlood.drought_retention_pct >= 95
+                    ? `Natural sponge soils retain ${drySeasonFlood.drought_retention_pct}% of dry-season rainfall without runoff.`
+                    : `Dry season runoff deficit of ${drySeasonFlood.unretained_drought_runoff_m3} m³ due to soil crusting and lack of bioswales.`
             },
             intermediate_steps: intermediateSteps
         }

@@ -11,14 +11,30 @@ export interface FloodMetrics {
   retention_efficiency_pct: number;
 }
 
+export interface FloodOptions {
+  isDrySeason?: boolean;
+  droughtPrecipitationMm?: number; // Default: 10 mm in dry season
+  greenRetentionHectares?: number; // Total hectares with bioswales/permeable/parks
+}
+
+export interface DrySeasonFloodMetrics extends FloodMetrics {
+  drought_retention_pct: number;
+  unretained_drought_runoff_m3: number;
+  green_infrastructure_sponge_deficit_m3: number;
+}
+
 /**
  * Stanford InVEST Urban Flood Risk Mitigation Model adapted:
  * Uses the USDA SCS-CN (Soil Conservation Service Curve Number) method.
  *
  * Design Storm Depth (P): Default 50 mm (standard 2-year 24-hr severe storm event)
+ * Dry Season Storm Depth (P_dry): Default 10 mm (low-precipitation drought shower)
  *
  * 1. Composite Curve Number (CN):
  *    CN = sum(CN_i * Area_fraction_i)
+ *    Under dry season conditions without green infrastructure sponge soils, dry crusted ground
+ *    and hydrophobic soil surfaces experience reduced initial abstraction capacity (Ia),
+ *    while bioswales, pocket parks, and permeable pavement retain up to 100% of light 10mm precipitation.
  *
  * 2. Potential Maximum Soil Water Retention (S in mm):
  *    S = (25400 / CN) - 254
@@ -38,7 +54,8 @@ export interface FloodMetrics {
 export function calculateInVESTFloodRisk(
   landCover: LandCoverDistribution,
   totalAreaHectares: number = 50,
-  designStormDepthMm: number = 50
+  designStormDepthMm: number = 50,
+  options?: FloodOptions
 ): FloodMetrics {
   let compositeCN = 0;
 
@@ -52,8 +69,20 @@ export function calculateInVESTFloodRisk(
 
   compositeCN = Math.min(100, Math.max(30, compositeCN));
 
+  // In dry season, baked bare soil and degraded pavement surfaces become crusty/hydrophobic
+  // slightly shifting effective CN upward if degraded bare soil/impervious dominates without green infrastructure
+  let effectiveCN = compositeCN;
+  if (options?.isDrySeason) {
+    const degradedRatio = ((landCover.built_up_50 ?? 0) + (landCover.bare_soil_60 ?? 0)) / 100;
+    const greenSpongeRatio = ((landCover.tree_cover_10 ?? 0) + (landCover.grassland_30 ?? 0) + (landCover.shrubland_20 ?? 0)) / 100;
+    // Crusting penalty up to +2 CN when degraded > 70% without green infrastructure
+    if (degradedRatio > 0.6 && greenSpongeRatio < 0.3) {
+      effectiveCN = Math.min(99, effectiveCN + 1.8 * (degradedRatio - greenSpongeRatio));
+    }
+  }
+
   // Max retention capacity S (mm)
-  const sMm = (25400 / compositeCN) - 254;
+  const sMm = (25400 / effectiveCN) - 254;
   const initialAbstraction = 0.2 * sMm;
 
   let directRunoffMm = 0;
@@ -66,15 +95,43 @@ export function calculateInVESTFloodRisk(
   const retainedMm = Math.max(0, designStormDepthMm - directRunoffMm);
   const totalAreaM2 = totalAreaHectares * 10000;
   const stormwaterRetainedM3 = (retainedMm / 1000) * totalAreaM2;
-  const retentionEfficiencyPct = (retainedMm / designStormDepthMm) * 100;
+  const retentionEfficiencyPct = designStormDepthMm > 0 ? (retainedMm / designStormDepthMm) * 100 : 100;
 
   return {
     design_storm_depth_mm: designStormDepthMm,
-    composite_curve_number: Number(compositeCN.toFixed(1)),
+    composite_curve_number: Number(effectiveCN.toFixed(1)),
     max_soil_retention_mm: Number(sMm.toFixed(2)),
     direct_runoff_mm: Number(directRunoffMm.toFixed(2)),
     retained_water_depth_mm: Number(retainedMm.toFixed(2)),
     stormwater_retained_m3: Number(stormwaterRetainedM3.toFixed(1)),
     retention_efficiency_pct: Number(retentionEfficiencyPct.toFixed(1))
+  };
+}
+
+/**
+ * Calculates flood and rainwater retention dynamics during the annual dry season:
+ * Evaluates whether light precipitation (P = 10 mm) is fully absorbed by natural sponge soils or lost to surface runoff.
+ */
+export function calculateDrySeasonFloodRisk(
+  landCover: LandCoverDistribution,
+  totalAreaHectares: number = 50,
+  droughtPrecipitationMm: number = 10
+): DrySeasonFloodMetrics {
+  const result = calculateInVESTFloodRisk(landCover, totalAreaHectares, droughtPrecipitationMm, {
+    isDrySeason: true,
+    droughtPrecipitationMm
+  });
+
+  const totalDroughtWaterVolumeM3 = (droughtPrecipitationMm / 1000) * (totalAreaHectares * 10000);
+  const unretainedM3 = Math.max(0, totalDroughtWaterVolumeM3 - result.stormwater_retained_m3);
+  const retentionPct = totalDroughtWaterVolumeM3 > 0
+    ? Number(((result.stormwater_retained_m3 / totalDroughtWaterVolumeM3) * 100).toFixed(1))
+    : 100;
+
+  return {
+    ...result,
+    drought_retention_pct: retentionPct,
+    unretained_drought_runoff_m3: Number(unretainedM3.toFixed(1)),
+    green_infrastructure_sponge_deficit_m3: Number(unretainedM3.toFixed(1))
   };
 }

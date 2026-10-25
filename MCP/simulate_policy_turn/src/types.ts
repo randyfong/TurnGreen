@@ -250,6 +250,14 @@ export interface YearPlanSimulationResult {
       incremental_runoff_reduction_m3: number;
       retention_efficiency_pct: number;
     };
+    dry_season_impact?: {
+      drought_precipitation_mm: number;
+      drought_temp_drop_celsius: number;
+      et_loss_pct: number;
+      canopy_resilience_ratio: number;
+      drought_retention_pct: number;
+      sponge_capacity_description: string;
+    };
     intermediate_steps?: Array<{
       intervention_id: InterventionType;
       area_converted_hectares: number;

@@ -7,6 +7,17 @@ export interface CoolingMetrics {
     surface_temperature_drop_c: number;
     surface_temperature_drop_f: number;
 }
+export interface CoolingOptions {
+    additionalAlbedoBoost?: number;
+    isDrySeason?: boolean;
+    droughtStressFactor?: number;
+}
+export interface DrySeasonCoolingMetrics extends CoolingMetrics {
+    drought_stress_factor: number;
+    shallow_veg_et_attenuation: number;
+    canopy_et_retention_ratio: number;
+    et_loss_pct: number;
+}
 /**
  * Stanford InVEST Urban Cooling Model equations adapted for policy simulation:
  *
@@ -17,10 +28,14 @@ export interface CoolingMetrics {
  * Heat Mitigation Index (HMI):
  *   HMI = 0.6 * Fv + 0.2 * ET_I + 0.2 * A
  *
- * Temperature Relief (Delta T):
- *   In Stanford InVEST, air temperature reduction is modeled as:
- *   Delta T = (T_max - T_ref) * (1 - HMI) or cooling delta = HMI * T_mitigation_potential
- *   In warm summer conditions (e.g. 35°C urban baseline), high HMI can reduce microclimate
- *   temperatures by up to 3.5°C (6.3°F).
+ * In dry seasons:
+ *   - Soil moisture deficits attenuate ET capacity, especially in shallow-root vegetation (grassland, cropland, shrubs).
+ *   - Deep-root canopy trees (tree_cover_10) exhibit high drought resilience and retain transpiration via deep groundwater access.
+ *   - Shallow vegetation without water retention infrastructure experiences substantial ET attenuation.
  */
-export declare function calculateInVESTCooling(landCover: LandCoverDistribution, additionalAlbedoBoost?: number): CoolingMetrics;
+export declare function calculateInVESTCooling(landCover: LandCoverDistribution, additionalAlbedoBoost?: number, options?: CoolingOptions): CoolingMetrics;
+/**
+ * Calculates cooling metrics under severe annual dry season stress:
+ * Demonstrates the comparative cooling stability of deep-root canopy trees vs shallow turf.
+ */
+export declare function calculateDrySeasonCooling(landCover: LandCoverDistribution, additionalAlbedoBoost?: number, droughtStressFactor?: number): DrySeasonCoolingMetrics;

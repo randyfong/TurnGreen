@@ -9,25 +9,48 @@ import { ESA_WORLDCOVER_PROPERTIES } from "../constants/esa_worldcover.js";
  * Heat Mitigation Index (HMI):
  *   HMI = 0.6 * Fv + 0.2 * ET_I + 0.2 * A
  *
- * Temperature Relief (Delta T):
- *   In Stanford InVEST, air temperature reduction is modeled as:
- *   Delta T = (T_max - T_ref) * (1 - HMI) or cooling delta = HMI * T_mitigation_potential
- *   In warm summer conditions (e.g. 35°C urban baseline), high HMI can reduce microclimate
- *   temperatures by up to 3.5°C (6.3°F).
+ * In dry seasons:
+ *   - Soil moisture deficits attenuate ET capacity, especially in shallow-root vegetation (grassland, cropland, shrubs).
+ *   - Deep-root canopy trees (tree_cover_10) exhibit high drought resilience and retain transpiration via deep groundwater access.
+ *   - Shallow vegetation without water retention infrastructure experiences substantial ET attenuation.
  */
-export function calculateInVESTCooling(landCover, additionalAlbedoBoost = 0) {
+export function calculateInVESTCooling(landCover, additionalAlbedoBoost = 0, options) {
     let weightedAlbedo = 0;
     let weightedVegetation = 0;
     let weightedET = 0;
     let totalPct = 0;
+    const isDrySeason = options?.isDrySeason ?? false;
+    const droughtFactor = isDrySeason ? (options?.droughtStressFactor ?? 0.5) : 0;
     for (const [key, pct] of Object.entries(landCover)) {
         const classKey = key;
         const props = ESA_WORLDCOVER_PROPERTIES[classKey];
         if (props && pct > 0) {
             const weight = pct / 100;
             weightedAlbedo += props.albedo * weight;
-            weightedVegetation += props.vegetation_fraction * weight;
-            weightedET += props.et_coefficient * weight;
+            // In dry season, living vegetation fraction suffers minor browning on shallow turf
+            let vegFraction = props.vegetation_fraction;
+            let etCoeff = props.et_coefficient;
+            if (isDrySeason) {
+                if (classKey === "tree_cover_10") {
+                    // Deep-root trees retain 85-95% ET resilience
+                    etCoeff = props.et_coefficient * (1 - droughtFactor * 0.15);
+                }
+                else if (classKey === "grassland_30" || classKey === "cropland_40") {
+                    // Shallow grasses & crops suffer up to 50-60% ET loss under moisture deficit
+                    etCoeff = props.et_coefficient * (1 - droughtFactor * 0.55);
+                    vegFraction = Math.max(0.1, props.vegetation_fraction * (1 - droughtFactor * 0.25));
+                }
+                else if (classKey === "shrubland_20") {
+                    // Moderate root shrubs retain intermediate resilience
+                    etCoeff = props.et_coefficient * (1 - droughtFactor * 0.35);
+                }
+                else if (classKey === "water_80") {
+                    // Evaporation from water bodies remains high in dry heat
+                    etCoeff = props.et_coefficient;
+                }
+            }
+            weightedVegetation += vegFraction * weight;
+            weightedET += etCoeff * weight;
             totalPct += pct;
         }
     }
@@ -46,5 +69,30 @@ export function calculateInVESTCooling(landCover, additionalAlbedoBoost = 0) {
         heat_mitigation_index: hmi,
         surface_temperature_drop_c: tempDropC,
         surface_temperature_drop_f: tempDropF
+    };
+}
+/**
+ * Calculates cooling metrics under severe annual dry season stress:
+ * Demonstrates the comparative cooling stability of deep-root canopy trees vs shallow turf.
+ */
+export function calculateDrySeasonCooling(landCover, additionalAlbedoBoost = 0, droughtStressFactor = 0.5) {
+    const normal = calculateInVESTCooling(landCover, additionalAlbedoBoost, { isDrySeason: false });
+    const dry = calculateInVESTCooling(landCover, additionalAlbedoBoost, {
+        isDrySeason: true,
+        droughtStressFactor
+    });
+    const etLossPct = normal.et_index > 0
+        ? Number((((normal.et_index - dry.et_index) / normal.et_index) * 100).toFixed(1))
+        : 0;
+    // Canopy ET retention ratio: deep root tree fraction relative to shallow grass/shrub
+    const treeWeight = (landCover.tree_cover_10 ?? 0) / 100;
+    const shallowWeight = ((landCover.grassland_30 ?? 0) + (landCover.cropland_40 ?? 0)) / 100;
+    const canopyRetentionRatio = Number(((treeWeight * 0.9 + 0.1) / (shallowWeight * 0.5 + treeWeight * 0.9 + 0.1)).toFixed(2));
+    return {
+        ...dry,
+        drought_stress_factor: droughtStressFactor,
+        shallow_veg_et_attenuation: Number((droughtStressFactor * 0.55).toFixed(2)),
+        canopy_et_retention_ratio: canopyRetentionRatio,
+        et_loss_pct: etLossPct
     };
 }
