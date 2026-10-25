@@ -200,6 +200,201 @@ export declare const PolicyInputSchema: z.ZodObject<{
     };
 }>;
 export type PolicyInput = z.infer<typeof PolicyInputSchema>;
+export declare const YearPlanProjectSchema: z.ZodObject<{
+    intervention_id: z.ZodEnum<["green_roofs", "pocket_parks", "urban_canopy_trees", "permeable_pavement", "bioswales", "cool_roofs"]>;
+    budget_allocated: z.ZodNumber;
+    project_name: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
+    budget_allocated: number;
+    project_name?: string | undefined;
+}, {
+    intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
+    budget_allocated: number;
+    project_name?: string | undefined;
+}>;
+export type YearPlanProject = z.infer<typeof YearPlanProjectSchema>;
+export declare const YearPlanInputSchema: z.ZodObject<{
+    year: z.ZodOptional<z.ZodNumber>;
+    projects: z.ZodArray<z.ZodObject<{
+        intervention_id: z.ZodEnum<["green_roofs", "pocket_parks", "urban_canopy_trees", "permeable_pavement", "bioswales", "cool_roofs"]>;
+        budget_allocated: z.ZodNumber;
+        project_name: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
+        budget_allocated: number;
+        project_name?: string | undefined;
+    }, {
+        intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
+        budget_allocated: number;
+        project_name?: string | undefined;
+    }>, "many">;
+    current_state: z.ZodObject<{
+        total_area_hectares: z.ZodDefault<z.ZodNumber>;
+        remaining_budget: z.ZodDefault<z.ZodNumber>;
+        roof_treatment_hectares: z.ZodDefault<z.ZodNumber>;
+        baseline_runoff_mm: z.ZodOptional<z.ZodNumber>;
+        baseline_land_cover: z.ZodOptional<z.ZodObject<{
+            tree_cover_10: z.ZodNumber;
+            shrubland_20: z.ZodNumber;
+            grassland_30: z.ZodNumber;
+            cropland_40: z.ZodNumber;
+            built_up_50: z.ZodNumber;
+            bare_soil_60: z.ZodNumber;
+            water_80: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        }, {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        }>>;
+        land_cover: z.ZodObject<{
+            tree_cover_10: z.ZodDefault<z.ZodNumber>;
+            shrubland_20: z.ZodDefault<z.ZodNumber>;
+            grassland_30: z.ZodDefault<z.ZodNumber>;
+            cropland_40: z.ZodDefault<z.ZodNumber>;
+            built_up_50: z.ZodDefault<z.ZodNumber>;
+            bare_soil_60: z.ZodDefault<z.ZodNumber>;
+            water_80: z.ZodDefault<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        }, {
+            tree_cover_10?: number | undefined;
+            shrubland_20?: number | undefined;
+            grassland_30?: number | undefined;
+            cropland_40?: number | undefined;
+            built_up_50?: number | undefined;
+            bare_soil_60?: number | undefined;
+            water_80?: number | undefined;
+        }>;
+    }, "strip", z.ZodTypeAny, {
+        total_area_hectares: number;
+        remaining_budget: number;
+        roof_treatment_hectares: number;
+        land_cover: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        };
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
+    }, {
+        land_cover: {
+            tree_cover_10?: number | undefined;
+            shrubland_20?: number | undefined;
+            grassland_30?: number | undefined;
+            cropland_40?: number | undefined;
+            built_up_50?: number | undefined;
+            bare_soil_60?: number | undefined;
+            water_80?: number | undefined;
+        };
+        total_area_hectares?: number | undefined;
+        remaining_budget?: number | undefined;
+        roof_treatment_hectares?: number | undefined;
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    current_state: {
+        total_area_hectares: number;
+        remaining_budget: number;
+        roof_treatment_hectares: number;
+        land_cover: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        };
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
+    };
+    projects: {
+        intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
+        budget_allocated: number;
+        project_name?: string | undefined;
+    }[];
+    year?: number | undefined;
+}, {
+    current_state: {
+        land_cover: {
+            tree_cover_10?: number | undefined;
+            shrubland_20?: number | undefined;
+            grassland_30?: number | undefined;
+            cropland_40?: number | undefined;
+            built_up_50?: number | undefined;
+            bare_soil_60?: number | undefined;
+            water_80?: number | undefined;
+        };
+        total_area_hectares?: number | undefined;
+        remaining_budget?: number | undefined;
+        roof_treatment_hectares?: number | undefined;
+        baseline_runoff_mm?: number | undefined;
+        baseline_land_cover?: {
+            tree_cover_10: number;
+            shrubland_20: number;
+            grassland_30: number;
+            cropland_40: number;
+            built_up_50: number;
+            bare_soil_60: number;
+            water_80: number;
+        } | undefined;
+    };
+    projects: {
+        intervention_id: "green_roofs" | "pocket_parks" | "urban_canopy_trees" | "permeable_pavement" | "bioswales" | "cool_roofs";
+        budget_allocated: number;
+        project_name?: string | undefined;
+    }[];
+    year?: number | undefined;
+}>;
+export type YearPlanInput = z.infer<typeof YearPlanInputSchema>;
 export interface SimulationResult {
     turn: number;
     intervention: {

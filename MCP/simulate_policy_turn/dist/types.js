@@ -35,3 +35,43 @@ export const PolicyInputSchema = z.object({
         }).describe("Baseline ESA WorldCover percentages summing to 100")
     }).describe("Stateless neighborhood and budget state passed into the turn")
 });
+export const YearPlanProjectSchema = z.object({
+    intervention_id: z.enum([
+        "green_roofs",
+        "pocket_parks",
+        "urban_canopy_trees",
+        "permeable_pavement",
+        "bioswales",
+        "cool_roofs"
+    ]).describe("Selected urban policy intervention"),
+    budget_allocated: z.number().positive().describe("Budget allocated for this intervention in USD"),
+    project_name: z.string().optional().describe("Optional custom display name for this project")
+});
+export const YearPlanInputSchema = z.object({
+    year: z.number().int().min(1).max(5).optional().describe("Optional year or turn identifier (1 to 5)"),
+    projects: z.array(YearPlanProjectSchema).min(1).describe("List of interventions to execute within the year plan"),
+    current_state: z.object({
+        total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
+        remaining_budget: z.number().default(200000).describe("Current player remaining budget"),
+        roof_treatment_hectares: z.number().min(0).default(0).describe("Cumulative area of reflective cool roofs/coatings retrofitted in hectares"),
+        baseline_runoff_mm: z.number().min(0).optional().describe("Baseline Turn 0 storm runoff depth in mm"),
+        baseline_land_cover: z.object({
+            tree_cover_10: z.number().min(0).max(100),
+            shrubland_20: z.number().min(0).max(100),
+            grassland_30: z.number().min(0).max(100),
+            cropland_40: z.number().min(0).max(100),
+            built_up_50: z.number().min(0).max(100),
+            bare_soil_60: z.number().min(0).max(100),
+            water_80: z.number().min(0).max(100)
+        }).optional().describe("Baseline Turn 0 land cover distribution"),
+        land_cover: z.object({
+            tree_cover_10: z.number().min(0).max(100).default(12),
+            shrubland_20: z.number().min(0).max(100).default(3),
+            grassland_30: z.number().min(0).max(100).default(8),
+            cropland_40: z.number().min(0).max(100).default(0),
+            built_up_50: z.number().min(0).max(100).default(72),
+            bare_soil_60: z.number().min(0).max(100).default(5),
+            water_80: z.number().min(0).max(100).default(0)
+        }).describe("Baseline ESA WorldCover percentages summing to 100")
+    }).describe("Stateless neighborhood and budget state passed into the year plan")
+});
