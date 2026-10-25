@@ -10,10 +10,15 @@ import { calculateInVESTCooling } from "./models/invest_cooling.js";
 import { calculateInVESTFloodRisk } from "./models/invest_flood.js";
 import { generateYouthSummary } from "./translators/youth_metrics.js";
 import {
+  ExecutedPlanProject,
   InterventionType,
   LandCoverDistribution,
+  NeighborhoodState,
   PolicyInputSchema,
-  SimulationResult
+  SimulationResult,
+  YearPlanInput,
+  YearPlanInputSchema,
+  YearPlanSimulationResult
 } from "./types.js";
 
 const SIMULATE_POLICY_TURN_TOOL: Tool = {
@@ -333,6 +338,288 @@ export function executeSimulation(inputRaw: unknown): SimulationResult {
         incremental_runoff_reduction_m3: incrementalRunoffReductionM3,
         retention_efficiency_pct: postFlood.retention_efficiency_pct
       }
+    }
+  };
+}
+
+export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResult {
+  const parsed = YearPlanInputSchema.parse(args);
+  const { year, projects, current_state } = parsed;
+
+  // 1. Budget Validation: Verify sum of all budget_allocated across projects does not exceed remaining_budget
+  const totalRequestedBudget = projects.reduce((acc, p) => acc + p.budget_allocated, 0);
+  if (totalRequestedBudget > current_state.remaining_budget) {
+    throw new Error(
+      `Budget validation failed: Total requested budget ($${totalRequestedBudget.toLocaleString()}) exceeds remaining budget ($${current_state.remaining_budget.toLocaleString()}).`
+    );
+  }
+
+  // Baseline copies
+  const initialLandCover: LandCoverDistribution = { ...current_state.land_cover };
+  const workingLandCover: LandCoverDistribution = { ...current_state.land_cover };
+  let workingRoofTreatmentHa = current_state.roof_treatment_hectares ?? 0;
+  let remainingBudget = current_state.remaining_budget;
+
+  const projectsExecuted: ExecutedPlanProject[] = [];
+  const intermediateSteps: NonNullable<YearPlanSimulationResult["science_payload"]["intermediate_steps"]> = [];
+  let accumulatedAlbedoBoost = 0;
+
+  // Track initial cool roof boost from prior state
+  const coolRoofConfig = POLICY_INTERVENTIONS.cool_roofs;
+  const coolRoofAlbedoBoostFactor = coolRoofConfig.albedo_boost ?? 0.35;
+  const priorCoolRoofBoost = (workingRoofTreatmentHa / current_state.total_area_hectares) * coolRoofAlbedoBoostFactor;
+
+  // Baseline cooling & flood evaluations
+  const priorCooling = calculateInVESTCooling(initialLandCover, priorCoolRoofBoost);
+  const priorFlood = calculateInVESTFloodRisk(initialLandCover, current_state.total_area_hectares);
+
+  // 2. Sequential Land & Albedo Accumulation
+  for (const project of projects) {
+    const policy = POLICY_INTERVENTIONS[project.intervention_id];
+    if (!policy) {
+      throw new Error(`Unknown intervention type: ${project.intervention_id}`);
+    }
+
+    const budgetRequested = project.budget_allocated;
+    let actualBudgetSpent = budgetRequested;
+    let isCapped = false;
+    let budgetWarning: string | undefined;
+
+    if (actualBudgetSpent > remainingBudget) {
+      actualBudgetSpent = Math.max(0, remainingBudget);
+      isCapped = true;
+      budgetWarning = `Project budget capped from $${budgetRequested.toLocaleString()} to remaining $${actualBudgetSpent.toLocaleString()}`;
+    }
+
+    remainingBudget -= actualBudgetSpent;
+
+    const pctConversion = (actualBudgetSpent / policy.unit_cost_usd_per_pct);
+    const hectaresRequested = (pctConversion / 100) * current_state.total_area_hectares;
+
+    // Check available source classes for conversion
+    let maxPossibleScale = 1.0;
+    for (const [key, deltaPerUnit] of Object.entries(policy.conversions)) {
+      if (deltaPerUnit && deltaPerUnit < 0) {
+        const classKey = key as keyof LandCoverDistribution;
+        const available = workingLandCover[classKey] ?? 0;
+        const targetReduction = Math.abs(deltaPerUnit * pctConversion);
+        if (targetReduction > 0) {
+          const classScale = available / targetReduction;
+          if (classScale < maxPossibleScale) {
+            maxPossibleScale = Math.max(0, classScale);
+          }
+        }
+      }
+    }
+
+    const effectivePctConversion = pctConversion * maxPossibleScale;
+    const hectaresConverted = (effectivePctConversion / 100) * current_state.total_area_hectares;
+
+    // Apply shifts to land cover
+    let primarySourceClass: keyof LandCoverDistribution | null = null;
+    let maxSourceReduction = 0;
+
+    for (const [key, deltaPerUnit] of Object.entries(policy.conversions)) {
+      const classKey = key as keyof LandCoverDistribution;
+      const delta = (deltaPerUnit ?? 0) * effectivePctConversion;
+      if ((deltaPerUnit ?? 0) < 0 && Math.abs(delta) > maxSourceReduction) {
+        maxSourceReduction = Math.abs(delta);
+        primarySourceClass = classKey;
+      }
+      workingLandCover[classKey] = Number(Math.max(0, Math.min(100, workingLandCover[classKey] + delta)).toFixed(2));
+    }
+
+    // Ensure land cover sums strictly to 100% without rounding drift
+    const total = Number(Object.values(workingLandCover).reduce((acc, v) => acc + v, 0).toFixed(2));
+    const diff = Number((100 - total).toFixed(2));
+    if (Math.abs(diff) > 0.0001) {
+      const targetKey = primarySourceClass ?? ("built_up_50" as keyof LandCoverDistribution);
+      workingLandCover[targetKey] = Number(Math.max(0, Math.min(100, workingLandCover[targetKey] + diff)).toFixed(2));
+    }
+
+    // Roof treatment and albedo boost accumulation
+    if (project.intervention_id === "cool_roofs") {
+      workingRoofTreatmentHa += hectaresConverted;
+    }
+
+    const interventionAlbedoBoost = policy.albedo_boost
+      ? (policy.albedo_boost * (effectivePctConversion / 100))
+      : 0;
+    accumulatedAlbedoBoost += interventionAlbedoBoost;
+
+    // Step calculation for intermediate payload
+    const stepCooling = calculateInVESTCooling(
+      workingLandCover,
+      priorCoolRoofBoost + accumulatedAlbedoBoost
+    );
+    const stepFlood = calculateInVESTFloodRisk(workingLandCover, current_state.total_area_hectares);
+    const stepTempDrop = Math.max(0, stepCooling.surface_temperature_drop_c - priorCooling.surface_temperature_drop_c);
+
+    intermediateSteps.push({
+      intervention_id: project.intervention_id,
+      area_converted_hectares: Number(hectaresConverted.toFixed(2)),
+      post_step_temp_drop_celsius: Number(stepTempDrop.toFixed(2)),
+      post_step_stormwater_retained_m3: stepFlood.stormwater_retained_m3
+    });
+
+    projectsExecuted.push({
+      intervention_id: project.intervention_id,
+      intervention_name: policy.name,
+      ...(project.project_name ? { project_name: project.project_name } : {}),
+      budget_requested: budgetRequested,
+      budget_allocated: actualBudgetSpent,
+      budget_capped: isCapped,
+      ...(budgetWarning ? { budget_warning: budgetWarning } : {}),
+      area_converted_hectares: Number(hectaresConverted.toFixed(2)),
+      pct_area_converted: Number(effectivePctConversion.toFixed(2))
+    });
+  }
+
+  // 3. Biophysical Modeling for Final Accumulated State
+  const postCooling = calculateInVESTCooling(
+    workingLandCover,
+    priorCoolRoofBoost + accumulatedAlbedoBoost
+  );
+  const postFlood = calculateInVESTFloodRisk(workingLandCover, current_state.total_area_hectares);
+
+  // Baseline runoff determination
+  const baselineLandCover: LandCoverDistribution = current_state.baseline_land_cover ?? initialLandCover;
+  let baselineRunoffMm: number;
+  if (current_state.baseline_runoff_mm !== undefined) {
+    baselineRunoffMm = current_state.baseline_runoff_mm;
+  } else if (current_state.baseline_land_cover) {
+    const baseFlood = calculateInVESTFloodRisk(current_state.baseline_land_cover, current_state.total_area_hectares);
+    baselineRunoffMm = baseFlood.direct_runoff_mm;
+  } else {
+    baselineRunoffMm = priorFlood.direct_runoff_mm;
+  }
+
+  const runoffReductionDepthMm = Math.max(0, Number((baselineRunoffMm - postFlood.direct_runoff_mm).toFixed(2)));
+  const totalAreaM2 = current_state.total_area_hectares * 10000;
+  const incrementalRunoffReductionM3 = Number(((runoffReductionDepthMm / 1000) * totalAreaM2).toFixed(1));
+
+  // Cumulative ESA shifts
+  const cumulativeEsaShifts: Record<string, { prior_pct: number; post_pct: number; delta_pct: number }> = {};
+  for (const key of Object.keys(initialLandCover) as (keyof LandCoverDistribution)[]) {
+    cumulativeEsaShifts[key] = {
+      prior_pct: Number(initialLandCover[key].toFixed(2)),
+      post_pct: Number(workingLandCover[key].toFixed(2)),
+      delta_pct: Number((workingLandCover[key] - initialLandCover[key]).toFixed(2))
+    };
+  }
+
+  // 4. Synthesize Combined Scores and Youth Scorecard
+  const coolingScore = Math.min(100, Math.round(postCooling.heat_mitigation_index * 135));
+  const floodScore = Math.min(100, Math.round(postFlood.retention_efficiency_pct * 1.15));
+  
+  // Land restoration score: UN SDG 15.3.1 - based on reduction in degraded built_up_50 + bare_soil_60 into vegetated classes
+  const initialDegraded = (initialLandCover.built_up_50 ?? 0) + (initialLandCover.bare_soil_60 ?? 0);
+  const finalDegraded = (workingLandCover.built_up_50 ?? 0) + (workingLandCover.bare_soil_60 ?? 0);
+  const degradedHectaresRestored = Math.max(0, ((initialDegraded - finalDegraded) / 100) * current_state.total_area_hectares);
+  const landRestorationScore = Math.min(100, Math.round((degradedHectaresRestored / (current_state.total_area_hectares * 0.15)) * 100));
+
+  const overallSustainability = Math.round((coolingScore * 0.4) + (floodScore * 0.4) + (landRestorationScore * 0.2));
+  const deltaTempC = Math.max(0, postCooling.surface_temperature_drop_c - priorCooling.surface_temperature_drop_c);
+
+  // Generate youth analogies and scorecard
+  const totalSpent = projectsExecuted.reduce((acc, p) => acc + p.budget_allocated, 0);
+  const olympicPools = (postFlood.stormwater_retained_m3 / 2500).toFixed(1);
+  const bathtubs = Math.round(postFlood.stormwater_retained_m3 / 0.3).toLocaleString();
+  const coolingStars = Math.min(5, Math.max(1, Math.round(coolingScore / 20)));
+
+  const waterAnalogy = parseFloat(olympicPools) >= 1.0
+    ? `Soaked up ${postFlood.stormwater_retained_m3.toLocaleString()} m³ of rain—equivalent to filling ${olympicPools} Olympic swimming pools (or ~${bathtubs} full bathtubs)!`
+    : `Absorbed ${postFlood.stormwater_retained_m3.toLocaleString()} m³ of rainwater—that's roughly ${bathtubs} backyard bathtubs saved from storm drains!`;
+
+  const projectNames = projectsExecuted.map((p) => p.project_name || p.intervention_name).join(", ");
+  let headline = `Comprehensive Year Plan executed: ${projectsExecuted.length} project(s) deployed!`;
+  let youthTakeaway = "";
+  let vibe = "Warm & Humid";
+
+  if (coolingScore >= 80 && floodScore >= 80) {
+    headline = `Spectacular multi-project transformation! Combined investments create an urban climate haven.`;
+    youthTakeaway = `The community deployed ${projectNames}. Neighborhood streets feel like an interconnected forest park with cool breezes and dry walkways!`;
+    vibe = "Oasis Breeze (Super Chill ❄️)";
+  } else if (coolingScore >= 60 || floodScore >= 60) {
+    headline = `Major resilience milestone! ${projectsExecuted.length} green projects cool streets and absorb floodwater.`;
+    youthTakeaway = `Investing across ${projectNames} cooled neighborhood hotspots and virtually eliminated puddling after major rain events.`;
+    vibe = "Pleasantly Fresh (Comfortable 🌳)";
+  } else {
+    headline = `Solid foundational progress: ${projectsExecuted.length} resilience project(s) underway.`;
+    youthTakeaway = `New plantings and retrofits (${projectNames}) are taking root across the district.`;
+    vibe = "Summer Sun (Starting to Cool Down 🌤️)";
+  }
+
+  const tempDropDisplay = deltaTempC > 0
+    ? `-${deltaTempC.toFixed(2)}°C (-${(deltaTempC * 1.8).toFixed(2)}°F)`
+    : "0.0°C (Baseline)";
+
+  const nextState: NeighborhoodState = {
+    total_area_hectares: current_state.total_area_hectares,
+    remaining_budget: remainingBudget,
+    roof_treatment_hectares: Number(workingRoofTreatmentHa.toFixed(2)),
+    baseline_runoff_mm: baselineRunoffMm,
+    baseline_land_cover: baselineLandCover,
+    land_cover: workingLandCover
+  };
+
+  return {
+    ...(year !== undefined ? { year } : {}),
+    projects_executed: projectsExecuted,
+    total_budget_spent: totalSpent,
+    next_state: nextState,
+    youth_scorecard: {
+      headline,
+      youth_takeaway: youthTakeaway,
+      net_cooling_score: coolingScore,
+      runoff_score: floodScore,
+      land_restoration_score: landRestorationScore,
+      overall_sustainability_score: overallSustainability,
+      cooling_stars: coolingStars,
+      temperature_drop_display: tempDropDisplay,
+      water_retention_analogy: waterAnalogy,
+      neighborhood_vibe: vibe
+    },
+    science_payload: {
+      models_referenced: [
+        "Stanford InVEST Urban Cooling Model v3.14 (Heat Mitigation Index)",
+        "Stanford InVEST Urban Flood Risk Mitigation Model (USDA SCS-CN Curve Number)",
+        "ESA WorldCover 10m Land Cover Classification",
+        "UN SDG 15.3.1 Land Degradation Neutrality Framework"
+      ],
+      cumulative_esa_worldcover_shifts: cumulativeEsaShifts,
+      invest_urban_cooling: {
+        prior_hmi: priorCooling.heat_mitigation_index,
+        post_hmi: postCooling.heat_mitigation_index,
+        hmi_delta: Number((postCooling.heat_mitigation_index - priorCooling.heat_mitigation_index).toFixed(4)),
+        surface_temp_drop_celsius: Number(deltaTempC.toFixed(2)),
+        surface_temp_drop_fahrenheit: Number((deltaTempC * 1.8).toFixed(2)),
+        effective_albedo: {
+          prior: priorCooling.effective_albedo,
+          post: postCooling.effective_albedo
+        },
+        vegetation_fraction: {
+          prior: priorCooling.vegetation_fraction,
+          post: postCooling.vegetation_fraction
+        },
+        et_index: {
+          prior: priorCooling.et_index,
+          post: postCooling.et_index
+        }
+      },
+      invest_urban_flood: {
+        design_storm_depth_mm: postFlood.design_storm_depth_mm,
+        baseline_runoff_mm: baselineRunoffMm,
+        prior_composite_cn: priorFlood.composite_curve_number,
+        post_composite_cn: postFlood.composite_curve_number,
+        prior_runoff_mm: priorFlood.direct_runoff_mm,
+        post_runoff_mm: postFlood.direct_runoff_mm,
+        retained_runoff_depth_mm: postFlood.retained_water_depth_mm,
+        stormwater_retained_m3: postFlood.stormwater_retained_m3,
+        incremental_runoff_reduction_m3: incrementalRunoffReductionM3,
+        retention_efficiency_pct: postFlood.retention_efficiency_pct
+      },
+      intermediate_steps: intermediateSteps
     }
   };
 }
