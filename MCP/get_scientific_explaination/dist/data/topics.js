@@ -359,7 +359,7 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
             core_equations: [
                 "Surface Albedo Boost: +0.35 solar reflectance boost across treated area",
                 "District Albedo Shift: Delta Albedo = 0.35 * (Treated Hectares / Total District Area)",
-                "Persistent State: Treated roof area persists across all remaining turns"
+                "Persistent State: Treated roof area persists across all remaining planning cycles and subsequent years"
             ],
             key_coefficients: {
                 "Unit Cost": "$4,500 per 1% neighborhood conversion ($9,000/ha for a 50-ha district)",
@@ -370,7 +370,7 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
             biophysical_mechanism: "High solar reflectance reflects ultraviolet, visible, and infrared wavelengths, preventing dark roofs from heating adjacent air layers.",
             baseline_assumptions: [
                 "District model assumes standard 50-hectare planning area.",
-                "Treated roofs retain high albedo throughout all 5 planning cycles."
+                "Treated roofs retain high albedo throughout all multi-year planning cycles."
             ]
         },
         un_sdg_connection: {
@@ -386,7 +386,7 @@ Every hectare shifted from asphalt into permeable paving, bioswales, or parkland
 #### Physics of Albedo:
 - **Unit Cost:** $4,500 per 1% district conversion ($9,000/ha in a 50-ha district).
 - **Albedo Boost:** $+0.35$ solar reflectance across retrofitted roofs.
-- **Persistence:** Retrofits persist into subsequent turns without decay.
+- **Persistence:** Retrofits persist into subsequent years and planning cycles without decay.
 
 *Source: Climatic Change / Akbari et al. & Stanford InVEST.*`
     },
