@@ -260,7 +260,45 @@ try {
   );
   console.log("✓ Annual budget validation error caught:", (err as Error).message);
 }
-assert.ok(annualBudgetThrown, "executeYearPlanSimulation must reject requests exceeding max_annual_budget");
+// Test 10: Fixed Project Ordering & Index Annotation
+console.log("\n[Test 10] Validating Deterministic Project Ordering & Index Annotation...");
+
+// Input projects in arbitrary / reverse order:
+// cool_roofs (order 6), urban_canopy_trees (order 4), permeable_pavement (order 1)
+const disorderedProjects = [
+  { intervention_id: "cool_roofs" as const, budget_allocated: 16, project_name: "Rooftop Coating" },
+  { intervention_id: "urban_canopy_trees" as const, budget_allocated: 20, project_name: "Boulevard Trees" },
+  { intervention_id: "permeable_pavement" as const, budget_allocated: 20, project_name: "Alley De-Pave" }
+];
+
+const sortedPlanResult = executeYearPlanSimulation({
+  year: 1,
+  projects: disorderedProjects,
+  current_state: coinNeighborhoodState
+});
+
+const executedIds = sortedPlanResult.projects_executed.map((p) => p.intervention_id);
+console.log("Canonical Execution Order Observed:", executedIds);
+
+// Expected order: permeable_pavement (1) -> urban_canopy_trees (4) -> cool_roofs (6)
+assert.deepStrictEqual(
+  executedIds,
+  ["permeable_pavement", "urban_canopy_trees", "cool_roofs"],
+  "Projects must execute in canonical order regardless of input array ordering"
+);
+
+// Verify original_index and executed_index annotations
+assert.strictEqual(sortedPlanResult.projects_executed[0].original_index, 2); // permeable_pavement was index 2
+assert.strictEqual(sortedPlanResult.projects_executed[0].executed_index, 0);
+
+assert.strictEqual(sortedPlanResult.projects_executed[1].original_index, 1); // urban_canopy_trees was index 1
+assert.strictEqual(sortedPlanResult.projects_executed[1].executed_index, 1);
+
+assert.strictEqual(sortedPlanResult.projects_executed[2].original_index, 0); // cool_roofs was index 0
+assert.strictEqual(sortedPlanResult.projects_executed[2].executed_index, 2);
+
+console.log("✓ Projects deterministically ordered and annotated with original_index & executed_index!");
 
 console.log("\n🎉 ALL SIMULATE_YEAR_PLAN UNIT TESTS PASSED! 🎉\n");
+
 

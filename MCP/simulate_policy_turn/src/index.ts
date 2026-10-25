@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
   Tool
 } from "@modelcontextprotocol/sdk/types.js";
-import { POLICY_INTERVENTIONS } from "./constants/esa_worldcover.js";
+import { POLICY_INTERVENTIONS, CANONICAL_PROJECT_EXECUTION_ORDER } from "./constants/esa_worldcover.js";
 import { calculateInVESTCooling, calculateDrySeasonCooling } from "./models/invest_cooling.js";
 import { calculateInVESTFloodRisk, calculateDrySeasonFloodRisk } from "./models/invest_flood.js";
 import { generateYouthSummary } from "./translators/youth_metrics.js";
@@ -570,8 +570,29 @@ export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResu
   const priorCooling = calculateInVESTCooling(initialLandCover, priorCoolRoofBoost);
   const priorFlood = calculateInVESTFloodRisk(initialLandCover, current_state.total_area_hectares);
 
-  // 2. Sequential Land & Albedo Accumulation
-  for (const project of projects) {
+  // 2. Deterministic Project Ordering & Sequential Land/Albedo Accumulation
+  // Sort projects deterministically using CANONICAL_PROJECT_EXECUTION_ORDER, tie-breaking by project_name then original input index
+  const indexedProjects = projects.map((project, originalIndex) => ({
+    project,
+    originalIndex
+  }));
+
+  indexedProjects.sort((a, b) => {
+    const orderA = CANONICAL_PROJECT_EXECUTION_ORDER[a.project.intervention_id] ?? 99;
+    const orderB = CANONICAL_PROJECT_EXECUTION_ORDER[b.project.intervention_id] ?? 99;
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    const nameA = a.project.project_name ?? "";
+    const nameB = b.project.project_name ?? "";
+    const nameCmp = nameA.localeCompare(nameB);
+    if (nameCmp !== 0) {
+      return nameCmp;
+    }
+    return a.originalIndex - b.originalIndex;
+  });
+
+  indexedProjects.forEach(({ project, originalIndex }, executedIndex) => {
     const policy = POLICY_INTERVENTIONS[project.intervention_id];
     if (!policy) {
       throw new Error(`Unknown intervention type: ${project.intervention_id}`);
@@ -666,6 +687,8 @@ export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResu
       intervention_id: project.intervention_id,
       intervention_name: policy.name,
       ...(project.project_name ? { project_name: project.project_name } : {}),
+      original_index: originalIndex,
+      executed_index: executedIndex,
       budget_requested: budgetRequested,
       budget_allocated: actualBudgetSpent,
       budget_capped: isCapped,
@@ -673,7 +696,7 @@ export function executeYearPlanSimulation(args: unknown): YearPlanSimulationResu
       area_converted_hectares: Number(hectaresConverted.toFixed(2)),
       pct_area_converted: Number(effectivePctConversion.toFixed(2))
     });
-  }
+  });
 
   // 3. Biophysical Modeling for Final Accumulated State
   const postCooling = calculateInVESTCooling(

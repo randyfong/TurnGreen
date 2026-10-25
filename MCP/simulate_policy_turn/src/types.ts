@@ -201,6 +201,8 @@ export interface ExecutedPlanProject {
   intervention_id: InterventionType;
   intervention_name: string;
   project_name?: string;
+  original_index?: number;
+  executed_index?: number;
   budget_requested: number;
   budget_allocated: number;
   budget_capped: boolean;
