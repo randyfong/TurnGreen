@@ -19,10 +19,12 @@ export interface LandCoverDistribution {
     bare_soil_60: number;
     water_80: number;
 }
+export type BudgetCurrency = "coins" | "usd";
 export interface NeighborhoodState {
     total_area_hectares: number;
     land_cover: LandCoverDistribution;
     remaining_budget: number;
+    budget_currency?: BudgetCurrency;
     roof_treatment_hectares?: number;
     baseline_runoff_mm?: number;
     baseline_land_cover?: LandCoverDistribution;
@@ -33,6 +35,7 @@ export interface InterventionConfig {
     name: string;
     description: string;
     unit_cost_usd_per_pct: number;
+    cost_coins_per_pct?: number;
     conversions: Partial<Record<keyof LandCoverDistribution, number>>;
     albedo_boost?: number;
 }
@@ -43,6 +46,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
     current_state: z.ZodObject<{
         total_area_hectares: z.ZodDefault<z.ZodNumber>;
         remaining_budget: z.ZodDefault<z.ZodNumber>;
+        budget_currency: z.ZodOptional<z.ZodEnum<["coins", "usd"]>>;
         roof_treatment_hectares: z.ZodDefault<z.ZodNumber>;
         baseline_runoff_mm: z.ZodOptional<z.ZodNumber>;
         baseline_land_cover: z.ZodOptional<z.ZodObject<{
@@ -108,6 +112,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
             bare_soil_60: number;
             water_80: number;
         };
+        budget_currency?: "coins" | "usd" | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {
             tree_cover_10: number;
@@ -130,6 +135,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
         };
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
+        budget_currency?: "coins" | "usd" | undefined;
         roof_treatment_hectares?: number | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {
@@ -159,6 +165,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
             bare_soil_60: number;
             water_80: number;
         };
+        budget_currency?: "coins" | "usd" | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {
             tree_cover_10: number;
@@ -186,6 +193,7 @@ export declare const PolicyInputSchema: z.ZodObject<{
         };
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
+        budget_currency?: "coins" | "usd" | undefined;
         roof_treatment_hectares?: number | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {
@@ -232,6 +240,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
     current_state: z.ZodObject<{
         total_area_hectares: z.ZodDefault<z.ZodNumber>;
         remaining_budget: z.ZodDefault<z.ZodNumber>;
+        budget_currency: z.ZodOptional<z.ZodEnum<["coins", "usd"]>>;
         roof_treatment_hectares: z.ZodDefault<z.ZodNumber>;
         baseline_runoff_mm: z.ZodOptional<z.ZodNumber>;
         baseline_land_cover: z.ZodOptional<z.ZodObject<{
@@ -297,6 +306,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
             bare_soil_60: number;
             water_80: number;
         };
+        budget_currency?: "coins" | "usd" | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {
             tree_cover_10: number;
@@ -319,6 +329,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
         };
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
+        budget_currency?: "coins" | "usd" | undefined;
         roof_treatment_hectares?: number | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {
@@ -345,6 +356,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
             bare_soil_60: number;
             water_80: number;
         };
+        budget_currency?: "coins" | "usd" | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {
             tree_cover_10: number;
@@ -375,6 +387,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
         };
         total_area_hectares?: number | undefined;
         remaining_budget?: number | undefined;
+        budget_currency?: "coins" | "usd" | undefined;
         roof_treatment_hectares?: number | undefined;
         baseline_runoff_mm?: number | undefined;
         baseline_land_cover?: {

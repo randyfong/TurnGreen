@@ -22,10 +22,13 @@ export interface LandCoverDistribution {
   water_80: number;            // Percentage (0 - 100)
 }
 
+export type BudgetCurrency = "coins" | "usd";
+
 export interface NeighborhoodState {
   total_area_hectares: number; // Default e.g. 50 hectares
   land_cover: LandCoverDistribution;
   remaining_budget: number;
+  budget_currency?: BudgetCurrency; // "coins" or "usd" (default: "coins")
   roof_treatment_hectares?: number; // Cumulative area of high-albedo roof/surface retrofits in hectares
   baseline_runoff_mm?: number; // Baseline (Turn 0) design storm runoff depth in mm
   baseline_land_cover?: LandCoverDistribution; // Baseline (Turn 0) land cover distribution
@@ -44,6 +47,7 @@ export interface InterventionConfig {
   name: string;
   description: string;
   unit_cost_usd_per_pct: number; // Cost in USD to convert 1% of total neighborhood area
+  cost_coins_per_pct?: number;   // Cost in coins to convert 1% of total neighborhood area
   conversions: Partial<Record<keyof LandCoverDistribution, number>>; // Deltas per 1% intervention
   albedo_boost?: number; // Direct surface reflectivity delta
 }
@@ -58,10 +62,11 @@ export const PolicyInputSchema = z.object({
     "bioswales",
     "cool_roofs"
   ]).describe("Selected urban policy intervention"),
-  budget_allocated: z.number().positive().describe("Budget allocated for this intervention in USD"),
+  budget_allocated: z.number().positive().describe("Budget allocated for this intervention in coins or USD"),
   current_state: z.object({
     total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
-    remaining_budget: z.number().default(200000).describe("Current player remaining budget"),
+    remaining_budget: z.number().default(100).describe("Current player remaining budget"),
+    budget_currency: z.enum(["coins", "usd"]).optional().describe("Budget currency mode ('coins' or 'usd')"),
     roof_treatment_hectares: z.number().min(0).default(0).describe("Cumulative area of reflective cool roofs/coatings retrofitted in hectares"),
     baseline_runoff_mm: z.number().min(0).optional().describe("Baseline Turn 0 storm runoff depth in mm"),
     baseline_land_cover: z.object({
@@ -96,7 +101,7 @@ export const YearPlanProjectSchema = z.object({
     "bioswales",
     "cool_roofs"
   ]).describe("Selected urban policy intervention"),
-  budget_allocated: z.number().positive().describe("Budget allocated for this intervention in USD"),
+  budget_allocated: z.number().positive().describe("Budget allocated for this intervention in coins or USD"),
   project_name: z.string().optional().describe("Optional custom display name for this project")
 });
 
@@ -107,7 +112,8 @@ export const YearPlanInputSchema = z.object({
   projects: z.array(YearPlanProjectSchema).min(1).describe("List of interventions to execute within the year plan"),
   current_state: z.object({
     total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
-    remaining_budget: z.number().default(200000).describe("Current player remaining budget"),
+    remaining_budget: z.number().default(100).describe("Current player remaining budget"),
+    budget_currency: z.enum(["coins", "usd"]).optional().describe("Budget currency mode ('coins' or 'usd')"),
     roof_treatment_hectares: z.number().min(0).default(0).describe("Cumulative area of reflective cool roofs/coatings retrofitted in hectares"),
     baseline_runoff_mm: z.number().min(0).optional().describe("Baseline Turn 0 storm runoff depth in mm"),
     baseline_land_cover: z.object({

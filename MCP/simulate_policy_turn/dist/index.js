@@ -220,15 +220,20 @@ export function executeSimulation(inputRaw) {
         throw new Error(`Unknown intervention ID: ${intervention_id}`);
     }
     // Validate budget
+    const budgetCurrency = current_state.budget_currency ?? (current_state.remaining_budget > 500 ? "usd" : "coins");
+    const currencySymbol = budgetCurrency === "coins" ? "🪙" : "$";
     const budgetRequested = budget_allocated;
     const isCapped = budgetRequested > current_state.remaining_budget;
     const actualBudgetSpent = isCapped ? current_state.remaining_budget : budgetRequested;
     const budgetWarning = isCapped
-        ? `Requested budget ($${budgetRequested.toLocaleString()}) exceeded remaining budget ($${current_state.remaining_budget.toLocaleString()}). Allocation was capped to $${actualBudgetSpent.toLocaleString()}.`
+        ? `Requested budget (${currencySymbol}${budgetRequested.toLocaleString()}) exceeded remaining budget (${currencySymbol}${current_state.remaining_budget.toLocaleString()}). Allocation was capped to ${currencySymbol}${actualBudgetSpent.toLocaleString()}.`
         : undefined;
     const newRemainingBudget = Math.max(0, current_state.remaining_budget - actualBudgetSpent);
-    // Compute conversion percentage based on budget spent
-    const pctConversion = actualBudgetSpent / policy.unit_cost_usd_per_pct;
+    // Compute conversion percentage based on budget spent and currency mode
+    const unitCost = (budgetCurrency === "coins" && policy.cost_coins_per_pct)
+        ? policy.cost_coins_per_pct
+        : policy.unit_cost_usd_per_pct;
+    const pctConversion = actualBudgetSpent / unitCost;
     const hectaresConverted = (pctConversion / 100) * current_state.total_area_hectares;
     // Clone land cover for modification
     const priorLandCover = { ...current_state.land_cover };
@@ -412,9 +417,11 @@ export function executeYearPlanSimulation(args) {
     const parsed = YearPlanInputSchema.parse(args);
     const { year, projects, current_state } = parsed;
     // 1. Budget Validation: Verify sum of all budget_allocated across projects does not exceed remaining_budget
+    const budgetCurrency = current_state.budget_currency ?? (current_state.remaining_budget > 500 ? "usd" : "coins");
+    const currencySymbol = budgetCurrency === "coins" ? "🪙" : "$";
     const totalRequestedBudget = projects.reduce((acc, p) => acc + p.budget_allocated, 0);
     if (totalRequestedBudget > current_state.remaining_budget) {
-        throw new Error(`Budget validation failed: Total requested budget ($${totalRequestedBudget.toLocaleString()}) exceeds remaining budget ($${current_state.remaining_budget.toLocaleString()}).`);
+        throw new Error(`Budget validation failed: Total requested budget (${currencySymbol}${totalRequestedBudget.toLocaleString()}) exceeds remaining budget (${currencySymbol}${current_state.remaining_budget.toLocaleString()}).`);
     }
     // Baseline copies
     const initialLandCover = { ...current_state.land_cover };
@@ -444,10 +451,13 @@ export function executeYearPlanSimulation(args) {
         if (actualBudgetSpent > remainingBudget) {
             actualBudgetSpent = Math.max(0, remainingBudget);
             isCapped = true;
-            budgetWarning = `Project budget capped from $${budgetRequested.toLocaleString()} to remaining $${actualBudgetSpent.toLocaleString()}`;
+            budgetWarning = `Project budget capped from ${currencySymbol}${budgetRequested.toLocaleString()} to remaining ${currencySymbol}${actualBudgetSpent.toLocaleString()}`;
         }
         remainingBudget -= actualBudgetSpent;
-        const pctConversion = (actualBudgetSpent / policy.unit_cost_usd_per_pct);
+        const unitCost = (budgetCurrency === "coins" && policy.cost_coins_per_pct)
+            ? policy.cost_coins_per_pct
+            : policy.unit_cost_usd_per_pct;
+        const pctConversion = (actualBudgetSpent / unitCost);
         const hectaresRequested = (pctConversion / 100) * current_state.total_area_hectares;
         // Check available source classes for conversion
         let maxPossibleScale = 1.0;

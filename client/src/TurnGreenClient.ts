@@ -55,6 +55,8 @@ export interface ClientSessionConfig {
   session_id?: string;
   total_area_hectares?: number;
   initial_budget?: number;
+  initial_coins?: number;
+  budget_currency?: "coins" | "usd";
   initial_land_cover?: LandCoverDistribution;
   author_name?: string;
   district_name?: string;
@@ -72,7 +74,13 @@ export interface ClientSessionConfig {
  * Validates budget allocation before calling simulate_policy_turn so player cannot submit
  * a turn where budget_allocated > remaining_budget.
  */
-export function validateTurnBudget(budget_allocated: number, remaining_budget: number): void {
+export function validateTurnBudget(
+  budget_allocated: number,
+  remaining_budget: number,
+  currency?: "coins" | "usd"
+): void {
+  const mode = currency ?? (remaining_budget > 500 ? "usd" : "coins");
+  const sym = mode === "coins" ? "🪙" : "$";
   if (typeof budget_allocated !== "number" || isNaN(budget_allocated)) {
     throw new ValidationError(
       `Pre-Flight Validation failed: Invalid budget input "${budget_allocated}". Must be a positive number.`,
@@ -82,14 +90,14 @@ export function validateTurnBudget(budget_allocated: number, remaining_budget: n
 
   if (budget_allocated <= 0) {
     throw new ValidationError(
-      `Pre-Flight Validation failed: Budget allocation must be greater than $0 (received: $${budget_allocated.toLocaleString()}).`,
+      `Pre-Flight Validation failed: Budget allocation must be greater than 0 (received: ${sym}${budget_allocated.toLocaleString()}).`,
       "budget_allocated"
     );
   }
 
   if (budget_allocated > remaining_budget) {
     throw new ValidationError(
-      `Pre-Flight Validation failed: budget_allocated ($${budget_allocated.toLocaleString()}) cannot exceed remaining_budget ($${remaining_budget.toLocaleString()}).`,
+      `Pre-Flight Validation failed: budget_allocated (${sym}${budget_allocated.toLocaleString()}) cannot exceed remaining_budget (${sym}${remaining_budget.toLocaleString()}).`,
       "budget_allocated",
       {
         budget_allocated,
@@ -145,9 +153,22 @@ export class TurnGreenClientSession {
       water_80: 0
     };
 
+    // Determine currency and initial budget: default to coins with 100 coins
+    let budgetCurrency: "coins" | "usd" = config.budget_currency ?? (config.initial_budget !== undefined ? "usd" : "coins");
+    let startingBudget: number;
+    if (config.initial_coins !== undefined) {
+      startingBudget = config.initial_coins;
+      budgetCurrency = "coins";
+    } else if (config.initial_budget !== undefined) {
+      startingBudget = config.initial_budget;
+    } else {
+      startingBudget = budgetCurrency === "coins" ? 100 : 200000;
+    }
+
     this.currentState = {
       total_area_hectares: config.total_area_hectares || 50,
-      remaining_budget: config.initial_budget !== undefined ? config.initial_budget : 200000,
+      remaining_budget: startingBudget,
+      budget_currency: budgetCurrency,
       roof_treatment_hectares: 0,
       land_cover: { ...this.initialLandCover },
       baseline_land_cover: { ...this.initialLandCover }
@@ -317,7 +338,11 @@ export class TurnGreenClientSession {
 
     // Strict Pre-Flight Budget Validation:
     // Reject before calling simulate_policy_turn if allocated exceeds remaining budget
-    validateTurnBudget(input.budget_allocated, this.currentState.remaining_budget);
+    validateTurnBudget(
+      input.budget_allocated,
+      this.currentState.remaining_budget,
+      this.currentState.budget_currency ?? "coins"
+    );
 
     // Call simulation engine wrapped in MCP response contract
     const simResult = wrapMCPToolCallSync<SimulationResult>(() => {
@@ -391,6 +416,7 @@ export class TurnGreenClientSession {
     }
 
     const yearNumber = options?.year ?? Math.min(5, this.currentTurnNumber + 1);
+    const sym = (this.currentState.budget_currency ?? "coins") === "coins" ? "🪙" : "$";
 
     // Pre-flight batch budget validation
     const totalBatchBudget = projects.reduce((sum, p) => {
@@ -405,7 +431,7 @@ export class TurnGreenClientSession {
 
     if (totalBatchBudget > this.currentState.remaining_budget) {
       throw new ValidationError(
-        `Pre-Flight Validation failed: Total plan budget ($${totalBatchBudget.toLocaleString()}) cannot exceed remaining budget ($${this.currentState.remaining_budget.toLocaleString()}).`,
+        `Pre-Flight Validation failed: Total plan budget (${sym}${totalBatchBudget.toLocaleString()}) cannot exceed remaining budget (${sym}${this.currentState.remaining_budget.toLocaleString()}).`,
         "budget_allocated",
         {
           totalBatchBudget,

@@ -306,11 +306,43 @@ function runClientTests() {
     "Category matches"
   );
 
-  // Generate resolution and verify it receives mapped gain
-  const mappedResolution = mappingSession.generateResolution();
-  console.log("✓ Resolution successfully compiled with directly mapped learning gain:", mappedResolution.resolution_number);
+  // Test 11: 100-Coin Session Budget Pre-Flight Enforcement
+  console.log("\n[Test 11] Coin Budget Mode: Verifying 100-Coin Budget Pre-Flight Enforcement...");
+  const coinSession = new TurnGreenClientSession({
+    initial_coins: 100,
+    district_name: "District 2 - Riverview"
+  });
+  console.assert(coinSession.getCurrentState().remaining_budget === 100, "Initial coin budget must be 100");
+  console.assert(coinSession.getCurrentState().budget_currency === "coins", "Currency must be 'coins'");
 
-  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING) PASSED! 🎉\n");
+  // Verify rejection when exceeding remaining coin budget
+  let coinOverspendCaught = false;
+  try {
+    coinSession.playYearPlan([
+      { intervention_id: "pocket_parks", budget_allocated: 60 },
+      { intervention_id: "green_roofs", budget_allocated: 45 } // Total 105 > 100
+    ]);
+  } catch (err: unknown) {
+    if (err instanceof ValidationError) {
+      coinOverspendCaught = true;
+      console.log("✓ 100-coin overspend correctly rejected by pre-flight validation:", err.message);
+      console.assert(
+        err.message.includes("Total plan budget (🪙105) cannot exceed remaining budget (🪙100)"),
+        "Error message should use coin symbol and values"
+      );
+    }
+  }
+  console.assert(coinOverspendCaught, "Expected ValidationError when total coins > 100");
+
+  // Verify successful execution with valid coin plan
+  const coinPlanResult = coinSession.playYearPlan([
+    { intervention_id: "pocket_parks", budget_allocated: 40 },
+    { intervention_id: "cool_roofs", budget_allocated: 24 } // Total 64 <= 100
+  ]);
+  console.log(`✓ Coin plan executed. Spent: 🪙${coinPlanResult.total_budget_spent}, Remaining: 🪙${coinSession.getRemainingBudget()}`);
+  console.assert(coinSession.getRemainingBudget() === 36, "Remaining coins should be 36");
+
+  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET) PASSED! 🎉\n");
 }
 
 runClientTests();

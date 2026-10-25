@@ -17,5 +17,6 @@ export declare const ESA_WORLDCOVER_PROPERTIES: Record<keyof LandCoverDistributi
 /**
  * Standard Policies available in TurnGreen
  * unit_cost_usd_per_pct: Cost in USD to convert 1% of a standard 50-hectare neighborhood
+ * cost_coins_per_pct: Cost in coins (from 100-coin total budget) to convert 1% of neighborhood area
  */
 export declare const POLICY_INTERVENTIONS: Record<InterventionType, InterventionConfig>;

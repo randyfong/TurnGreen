@@ -52,6 +52,7 @@ export const ESA_WORLDCOVER_PROPERTIES = {
 /**
  * Standard Policies available in TurnGreen
  * unit_cost_usd_per_pct: Cost in USD to convert 1% of a standard 50-hectare neighborhood
+ * cost_coins_per_pct: Cost in coins (from 100-coin total budget) to convert 1% of neighborhood area
  */
 export const POLICY_INTERVENTIONS = {
     green_roofs: {
@@ -59,6 +60,7 @@ export const POLICY_INTERVENTIONS = {
         name: "Living Green Roofs",
         description: "Install extensive sedum and vegetative green roof systems on commercial and public buildings.",
         unit_cost_usd_per_pct: 12000,
+        cost_coins_per_pct: 15, // 15 coins per 1%
         conversions: {
             built_up_50: -1.0,
             grassland_30: 1.0 // Green roofs behave similar to high-retention managed turf/grassland
@@ -70,6 +72,7 @@ export const POLICY_INTERVENTIONS = {
         name: "Neighborhood Pocket Parks",
         description: "Replace abandoned parking lots and corner asphalt plots with community pocket parks with trees and flowerbeds.",
         unit_cost_usd_per_pct: 9500,
+        cost_coins_per_pct: 20, // 20 coins per 1%
         conversions: {
             built_up_50: -1.0,
             grassland_30: 0.5,
@@ -81,6 +84,7 @@ export const POLICY_INTERVENTIONS = {
         name: "Street Tree Canopy Expansion",
         description: "Plant native shade trees along boulevards, sidewalks, and parking medians.",
         unit_cost_usd_per_pct: 7500,
+        cost_coins_per_pct: 12, // 12 coins per 1%
         conversions: {
             built_up_50: -0.7,
             bare_soil_60: -0.3,
@@ -92,6 +96,7 @@ export const POLICY_INTERVENTIONS = {
         name: "Permeable Pavement & Porous Asphalt",
         description: "Retrofit alleys, walkways, and parking surfaces with permeable pavers that let rainwater percolate.",
         unit_cost_usd_per_pct: 8000,
+        cost_coins_per_pct: 10, // 10 coins per 1%
         conversions: {
             built_up_50: -1.0,
             shrubland_20: 0.3,
@@ -104,6 +109,7 @@ export const POLICY_INTERVENTIONS = {
         name: "Rain Gardens & Roadside Bioswales",
         description: "Construct vegetated channels designed to slow, clean, and absorb urban stormwater runoff.",
         unit_cost_usd_per_pct: 6500,
+        cost_coins_per_pct: 10, // 10 coins per 1%
         conversions: {
             built_up_50: -0.8,
             bare_soil_60: -0.2,
@@ -116,6 +122,7 @@ export const POLICY_INTERVENTIONS = {
         name: "Reflective Cool Roofs & White Pavement",
         description: "Coat dark roofs and pavements with high-albedo solar-reflective materials to deflect heat.",
         unit_cost_usd_per_pct: 4500,
+        cost_coins_per_pct: 8, // 8 coins per 1%
         conversions: {
         // Keeps physical built-up footprint, but dramatically improves albedo
         },

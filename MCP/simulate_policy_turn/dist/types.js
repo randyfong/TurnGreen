@@ -9,10 +9,11 @@ export const PolicyInputSchema = z.object({
         "bioswales",
         "cool_roofs"
     ]).describe("Selected urban policy intervention"),
-    budget_allocated: z.number().positive().describe("Budget allocated for this intervention in USD"),
+    budget_allocated: z.number().positive().describe("Budget allocated for this intervention in coins or USD"),
     current_state: z.object({
         total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
-        remaining_budget: z.number().default(200000).describe("Current player remaining budget"),
+        remaining_budget: z.number().default(100).describe("Current player remaining budget"),
+        budget_currency: z.enum(["coins", "usd"]).optional().describe("Budget currency mode ('coins' or 'usd')"),
         roof_treatment_hectares: z.number().min(0).default(0).describe("Cumulative area of reflective cool roofs/coatings retrofitted in hectares"),
         baseline_runoff_mm: z.number().min(0).optional().describe("Baseline Turn 0 storm runoff depth in mm"),
         baseline_land_cover: z.object({
@@ -44,7 +45,7 @@ export const YearPlanProjectSchema = z.object({
         "bioswales",
         "cool_roofs"
     ]).describe("Selected urban policy intervention"),
-    budget_allocated: z.number().positive().describe("Budget allocated for this intervention in USD"),
+    budget_allocated: z.number().positive().describe("Budget allocated for this intervention in coins or USD"),
     project_name: z.string().optional().describe("Optional custom display name for this project")
 });
 export const YearPlanInputSchema = z.object({
@@ -52,7 +53,8 @@ export const YearPlanInputSchema = z.object({
     projects: z.array(YearPlanProjectSchema).min(1).describe("List of interventions to execute within the year plan"),
     current_state: z.object({
         total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
-        remaining_budget: z.number().default(200000).describe("Current player remaining budget"),
+        remaining_budget: z.number().default(100).describe("Current player remaining budget"),
+        budget_currency: z.enum(["coins", "usd"]).optional().describe("Budget currency mode ('coins' or 'usd')"),
         roof_treatment_hectares: z.number().min(0).default(0).describe("Cumulative area of reflective cool roofs/coatings retrofitted in hectares"),
         baseline_runoff_mm: z.number().min(0).optional().describe("Baseline Turn 0 storm runoff depth in mm"),
         baseline_land_cover: z.object({
