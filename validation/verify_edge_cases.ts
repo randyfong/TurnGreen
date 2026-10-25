@@ -250,6 +250,26 @@ function runEdgeCaseVerification() {
     allPassed = false;
   }
 
+  // Check 4c: Unique asphalt de-paving fidelity (ground_depaved_ha <= net built-up reduction)
+  // Bare-soil conversion and gross overlapping work must NOT be counted as unique asphalt removal
+  const baselineBuiltUpPct = baseLandCover.built_up_50; // 75%
+  const finalBuiltUpPct = t5.next_state.land_cover.built_up_50;
+  const netBuiltUpReductionHa = Number((((baselineBuiltUpPct - finalBuiltUpPct) / 100) * 50).toFixed(2));
+  const grossGroundWorkHa = turnsPlayed
+    .filter((t) => t.intervention_id !== "cool_roofs" && t.intervention_id !== "green_roofs")
+    .reduce((acc, t) => acc + (t.area_converted_ha ?? 0), 0);
+
+  console.log(`    Built-up shift: ${baselineBuiltUpPct}% -> ${finalBuiltUpPct}% (Net Built-up Reduction: ${netBuiltUpReductionHa} ha)`);
+  console.log(`    Gross Ground Interventions: ${grossGroundWorkHa.toFixed(2)} ha`);
+  console.log(`    Scorecard Ground De-Paved: ${scorecard.ground_depaved_ha} ha`);
+
+  if (scorecard.ground_depaved_ha <= netBuiltUpReductionHa && scorecard.ground_depaved_ha < grossGroundWorkHa) {
+    console.log(`    [PASS] Ground de-paved (${scorecard.ground_depaved_ha} ha) <= Net Built-up Reduction (${netBuiltUpReductionHa} ha) and strictly less than gross ground footprint (${grossGroundWorkHa.toFixed(2)} ha). No bare-soil inflation.`);
+  } else {
+    console.error(`FAIL: Ground de-paved (${scorecard.ground_depaved_ha} ha) exceeds net built-up reduction (${netBuiltUpReductionHa} ha) or inflates gross ground work (${grossGroundWorkHa} ha).`);
+    allPassed = false;
+  }
+
   // Check 4c: No hallucinated assertions in markdown or talking points
   const hallucinationStrings = [
     "$3.40",
