@@ -210,7 +210,7 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
     simulated_greenspace_gain_ha: simulatedGreenspaceGainHa,
     total_district_area_ha: totalDistrictAreaHa,
     greenspace_gain_calculation_basis: greenspaceCalculationBasis,
-    un_sdg_15_3_1_avoided_degradation_score: "Compliant (Avoided Artificial Degradation)",
+    un_sdg_15_3_1_avoided_degradation_score: "Aligned with SDG 15.3.1 Framework (Simulated Avoided Degradation)",
     budget_efficiency_rating: "High Impact (Direct avoided flood damage & heat relief)"
   };
 
@@ -239,9 +239,9 @@ export function buildYouthResolution(input: GenerateYouthResolutionInput): Youth
 
   const whereasClauses = [
     `urban heat islands and severe precipitation events directly impact residents, youth, and neighborhood infrastructure within ${district_name};`,
-    `empirical biophysical modeling through Stanford University's InVEST urban cooling engine demonstrates that expanding vegetative canopy and cool surfaces can lower local summer surface temperatures by ${scorecard.total_heat_reduction_display};`,
+    `educational simulation modeling based on Stanford University's InVEST urban cooling algorithms demonstrates that expanding vegetative canopy and cool surfaces can lower local summer surface temperatures by ${scorecard.total_heat_reduction_display};`,
     `impervious surface coverage (ESA WorldCover Class 50) exacerbates street-level runoff, and bio-retention interventions modeled by USDA-SCS Curve Number hydrology achieve a total modeled retention of ${scorecard.total_stormwater_retained_m3.toLocaleString()} m³ (retaining 80.4% of precipitation, an ${(scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ reduction in street runoff compared to baseline);`,
-    `the 5-year simulation scenario completed by ${author_name} (${orgOrSchoolText}) models verified land cover transitions aligning with UN SDG 15.3.1 Land Degradation Neutrality targets within a $${totalSpend.toLocaleString()} municipal budget.`
+    `the 5-year simulation scenario completed by ${author_name} (${orgOrSchoolText}) models simulated land cover transitions demonstrating alignment with UN SDG 15.3.1 Land Degradation Neutrality targets within a $${totalSpend.toLocaleString()} municipal budget.`
   ];
 
   const totalGroundInterventions = scorecard.total_ground_interventions_ha ?? scorecard.ground_depaved_ha;
