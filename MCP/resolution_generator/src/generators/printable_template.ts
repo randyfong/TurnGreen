@@ -210,7 +210,7 @@ export function renderSinglePageHtml(doc: Omit<YouthResolutionDocument, "single_
   <div class="page-container">
     <div class="header-banner">
       <div class="title-block">
-        <h1>Youth Climate Resilience Mandate</h1>
+        <h1>Simulated Youth Policy Mandate (Educational Scenario)</h1>
         <h2>Policy Resolution ${escapeHtml(doc.resolution_number)} &bull; ${escapeHtml(doc.district_name)}</h2>
       </div>
       <div class="meta-box">
@@ -313,7 +313,7 @@ ${doc.executive_summary}
 | **Total Modeled Stormwater Retention** | **${doc.biophysical_scorecard.total_stormwater_retained_m3.toLocaleString()} m³ / 50-mm storm** (${doc.biophysical_scorecard.total_stormwater_retained_gallons.toLocaleString()} gal; ${(doc.biophysical_scorecard.baseline_runoff_reduction_m3 ?? 8565).toLocaleString()} m³ runoff reduction) | USDA-SCS Curve Number Hydrology |
 | **Net Ground De-Paved (Asphalt Removed)** | **${doc.biophysical_scorecard.ground_depaved_ha.toFixed(2)} hectares** | ESA WorldCover 10m (Class 50 &rarr; 10/20) |
 ${groundInterventionsRow}| **Rooftop Retrofits** | **${doc.biophysical_scorecard.rooftop_treated_ha.toFixed(2)} hectares** | High-Albedo & Vegetative Roofs |
-| **Global Standard Alignment** | **UN SDG 15.3.1 Target** | UNCCD Trends.Earth Avoided Degradation |
+| **SDG 15.3.1 Alignment** | **Modeled Avoided Degradation** | UNCCD Trends.Earth Framework |
 | **Budget Efficiency** | **${doc.biophysical_scorecard.budget_efficiency_rating}** | Municipal Cost-Avoidance Analysis |
 
 ---

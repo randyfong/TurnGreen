@@ -119,7 +119,11 @@ try {
   // Verify HTML output
   assert(result.single_page_html.includes("<!DOCTYPE html>"), "Must include HTML doctype");
   assert(result.single_page_html.includes("@page {"), "Must include CSS print @page rules");
-  assert(result.single_page_html.includes("Youth Climate Resilience Mandate"), "HTML title check");
+  assert(result.single_page_html.includes("Simulated Youth Policy Mandate (Educational Scenario)"), "HTML print banner check");
+  assert(result.single_page_html.includes("Educational Simulation Notice"), "HTML simulation notice check");
+  assert(result.resolution_markdown.includes("Educational Simulation Notice"), "Markdown simulation notice check");
+  assert(result.resolution_markdown.includes("Simulation Modeling Framework"), "Markdown table header check");
+  assert(result.resolution_markdown.includes("SDG 15.3.1 Alignment"), "Markdown SDG alignment check");
 
   // Verify absence of fabricated or unsupported claims
   const combinedText = `${result.executive_summary} ${result.talking_points.map((t) => t.recommended_script).join(" ")} ${result.resolution_markdown}`;
