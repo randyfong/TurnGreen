@@ -464,3 +464,77 @@ export interface SimulationResult {
         };
     };
 }
+export interface ExecutedPlanProject {
+    intervention_id: InterventionType;
+    intervention_name: string;
+    project_name?: string;
+    budget_requested: number;
+    budget_allocated: number;
+    budget_capped: boolean;
+    budget_warning?: string;
+    area_converted_hectares: number;
+    pct_area_converted: number;
+}
+export interface YearPlanSimulationResult {
+    year?: number;
+    projects_executed: ExecutedPlanProject[];
+    total_budget_spent: number;
+    next_state: NeighborhoodState;
+    youth_scorecard: {
+        headline: string;
+        youth_takeaway: string;
+        net_cooling_score: number;
+        runoff_score: number;
+        land_restoration_score: number;
+        overall_sustainability_score: number;
+        cooling_stars: number;
+        temperature_drop_display: string;
+        water_retention_analogy: string;
+        neighborhood_vibe: string;
+    };
+    science_payload: {
+        models_referenced: string[];
+        cumulative_esa_worldcover_shifts: Record<string, {
+            prior_pct: number;
+            post_pct: number;
+            delta_pct: number;
+        }>;
+        invest_urban_cooling: {
+            prior_hmi: number;
+            post_hmi: number;
+            hmi_delta: number;
+            surface_temp_drop_celsius: number;
+            surface_temp_drop_fahrenheit: number;
+            effective_albedo: {
+                prior: number;
+                post: number;
+            };
+            vegetation_fraction: {
+                prior: number;
+                post: number;
+            };
+            et_index: {
+                prior: number;
+                post: number;
+            };
+        };
+        invest_urban_flood: {
+            design_storm_depth_mm: number;
+            baseline_runoff_mm: number;
+            prior_composite_cn: number;
+            post_composite_cn: number;
+            prior_runoff_mm: number;
+            post_runoff_mm: number;
+            retained_runoff_depth_mm: number;
+            stormwater_retained_m3: number;
+            incremental_runoff_reduction_m3: number;
+            retention_efficiency_pct: number;
+        };
+        intermediate_steps?: Array<{
+            intervention_id: InterventionType;
+            area_converted_hectares: number;
+            post_step_temp_drop_celsius: number;
+            post_step_stormwater_retained_m3: number;
+        }>;
+    };
+}
