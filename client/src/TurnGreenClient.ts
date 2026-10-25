@@ -1,4 +1,4 @@
-import { executeSimulation } from "../../MCP/simulate_policy_turn/dist/index.js";
+import { executeSimulation, executeYearPlanSimulation } from "../../MCP/simulate_policy_turn/dist/index.js";
 import { executeRecordAssessment } from "../../MCP/assessment_delta/dist/index.js";
 import { executeGenerateYouthResolution } from "../../MCP/resolution_generator/dist/index.js";
 import {
@@ -11,6 +11,8 @@ import type {
   NeighborhoodState,
   InterventionType,
   SimulationResult,
+  YearPlanProject,
+  YearPlanSimulationResult,
   LandCoverDistribution
 } from "../../MCP/simulate_policy_turn/dist/types.js";
 import type {
@@ -361,6 +363,97 @@ export class TurnGreenClientSession {
     this.turnsPlayed.push(turnRecord);
 
     return simResult;
+  }
+
+  /**
+   * Batch Year Plan Simulation:
+   * Accepts a list of multiple projects/interventions to execute within a single year plan.
+   * Performs pre-flight validation verifying total batch budget <= remaining_budget.
+   * Calls simulate_year_plan via MCP response contract.
+   * Records individual project sub-records into turnsPlayed so resolution_generator receives all project actions.
+   */
+  public playYearPlan(projects: YearPlanProject[], options?: { year?: number }): YearPlanSimulationResult {
+    if (!Array.isArray(projects) || projects.length === 0) {
+      throw new ValidationError(
+        "Pre-Flight Validation failed: projects must be a non-empty array of interventions.",
+        "projects"
+      );
+    }
+
+    const yearNumber = options?.year ?? Math.min(5, this.currentTurnNumber + 1);
+
+    // Pre-flight batch budget validation
+    const totalBatchBudget = projects.reduce((sum, p) => {
+      if (typeof p.budget_allocated !== "number" || isNaN(p.budget_allocated) || p.budget_allocated <= 0) {
+        throw new ValidationError(
+          `Pre-Flight Validation failed: Project "${p.intervention_id}" has invalid budget "${p.budget_allocated}". Must be a positive number.`,
+          "budget_allocated"
+        );
+      }
+      return sum + p.budget_allocated;
+    }, 0);
+
+    if (totalBatchBudget > this.currentState.remaining_budget) {
+      throw new ValidationError(
+        `Pre-Flight Validation failed: Total plan budget ($${totalBatchBudget.toLocaleString()}) cannot exceed remaining budget ($${this.currentState.remaining_budget.toLocaleString()}).`,
+        "budget_allocated",
+        {
+          totalBatchBudget,
+          remaining_budget: this.currentState.remaining_budget,
+          deficit: totalBatchBudget - this.currentState.remaining_budget
+        }
+      );
+    }
+
+    // Call simulate_year_plan MCP engine wrapped in response contract
+    const planResult = wrapMCPToolCallSync<YearPlanSimulationResult>(() => {
+      try {
+        const payload = executeYearPlanSimulation({
+          year: yearNumber,
+          projects,
+          current_state: this.currentState
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload)
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Year plan simulation error: ${message}` }]
+        };
+      }
+    });
+
+    // Update client session state
+    this.currentTurnNumber = yearNumber;
+    this.currentState = { ...planResult.next_state };
+
+    // Record each executed project into turnsPlayed for downstream resolution generator
+    const intermediateSteps = planResult.science_payload.intermediate_steps ?? [];
+    planResult.projects_executed.forEach((proj, idx) => {
+      const step = intermediateSteps[idx];
+      const turnRecord: TurnRecord = {
+        turn: Math.min(5, this.turnsPlayed.length + 1),
+        intervention_id: proj.intervention_id,
+        intervention_name: proj.project_name || proj.intervention_name,
+        budget_allocated: proj.budget_allocated,
+        area_converted_ha: proj.area_converted_hectares,
+        surface_temp_drop_celsius: step?.post_step_temp_drop_celsius ?? planResult.science_payload.invest_urban_cooling.surface_temp_drop_celsius,
+        runoff_retained_m3: step?.post_step_stormwater_retained_m3 ?? planResult.science_payload.invest_urban_flood.stormwater_retained_m3,
+        esa_conversions: Object.fromEntries(
+          Object.entries(planResult.science_payload.cumulative_esa_worldcover_shifts).map(([k, v]) => [k, v.delta_pct])
+        )
+      };
+      this.turnsPlayed.push(turnRecord);
+    });
+
+    return planResult;
   }
 
   // --- Civic Resolution Generation ---
