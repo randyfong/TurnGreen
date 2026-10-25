@@ -561,6 +561,7 @@ export class TurnGreenClientSession {
         try {
           const payload = executeYearPlanSimulation({
             year: yearNumber,
+            annual_budget_limit: options?.annual_budget_limit,
             max_annual_budget: options?.annual_budget_limit,
             projects,
             current_state: this.currentState
@@ -574,6 +575,13 @@ export class TurnGreenClientSession {
             ]
           };
         } catch (err: unknown) {
+          // If already structured SimulationPlanError, serialize detail object directly
+          if (err && typeof err === "object" && "detail" in err) {
+            return {
+              isError: true,
+              content: [{ type: "text", text: JSON.stringify((err as any).detail) }]
+            };
+          }
           const message = err instanceof Error ? err.message : String(err);
           return {
             isError: true,

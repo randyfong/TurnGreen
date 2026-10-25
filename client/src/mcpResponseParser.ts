@@ -19,15 +19,36 @@ export interface MCPCallToolResponse {
   [key: string]: unknown;
 }
 
+export interface StructuredErrorDetail {
+  error_code?: string;
+  project_index?: number;
+  project_name?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
 export class MCPResponseError extends Error {
   public response: MCPCallToolResponse;
   public rawText?: string;
+  public errorCode?: string;
+  public projectIndex?: number;
+  public structuredDetail?: StructuredErrorDetail;
 
-  constructor(message: string, response: MCPCallToolResponse, rawText?: string) {
+  constructor(
+    message: string,
+    response: MCPCallToolResponse,
+    rawText?: string,
+    structuredDetail?: StructuredErrorDetail
+  ) {
     super(message);
     this.name = "MCPResponseError";
     this.response = response;
     this.rawText = rawText;
+    this.structuredDetail = structuredDetail;
+    if (structuredDetail) {
+      this.errorCode = structuredDetail.error_code;
+      this.projectIndex = structuredDetail.project_index;
+    }
   }
 }
 
@@ -36,9 +57,9 @@ export class MCPResponseError extends Error {
  * Strict response contract parser for Model Context Protocol (MCP) tool calls.
  *
  * Rules:
- * 1. Checks `response.isError === true` FIRST before attempting any JSON parsing.
- * 2. If isError is true, extracts the error message from content[0].text (which is plain text error, not JSON),
- *    and throws a clean MCPResponseError.
+ * 1. Checks `response.isError === true` FIRST before attempting normal payload parsing.
+ * 2. If isError is true, attempts to parse structured JSON error (error_code, project_index, message),
+ *    falling back to plain text error message, and throws an MCPResponseError.
  * 3. Verifies that response.content is an array and content[0].text is present.
  * 4. Parses content[0].text as JSON and returns the strongly typed payload.
  * 5. If JSON parsing fails on a non-error response, throws a clear diagnostic error with the raw text.
@@ -57,7 +78,22 @@ export function parseMCPResponse<T = unknown>(response: unknown): T {
         ? (mcpResp.content[0] as MCPContentText).text
         : "MCP tool execution returned isError: true with no descriptive text";
 
-    throw new MCPResponseError(`MCP tool error: ${errorText}`, mcpResp, errorText);
+    // Attempt to parse structured error JSON: { error_code, project_index, message }
+    let structuredDetail: StructuredErrorDetail | undefined;
+    try {
+      const parsed = JSON.parse(errorText);
+      if (parsed && typeof parsed === "object") {
+        structuredDetail = parsed as StructuredErrorDetail;
+      }
+    } catch {
+      // Plain text error message
+    }
+
+    const message = structuredDetail?.message
+      ? `MCP tool error [${structuredDetail.error_code || "ERROR"}]: ${structuredDetail.message}`
+      : `MCP tool error: ${errorText}`;
+
+    throw new MCPResponseError(message, mcpResp, errorText, structuredDetail);
   }
 
   // 2. Validate content array
