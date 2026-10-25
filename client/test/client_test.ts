@@ -436,8 +436,8 @@ function runClientTests() {
   }
   console.assert(annualLimitCaught, "playYearPlan must reject batch plans exceeding annual_budget_limit before dispatch");
 
-  // Test 14: Atomic Save-After-Success and Rollback Handling
-  console.log("\n[Test 14] Testing Atomic Save-After-Success & Rollback Handling...");
+  // Test 14: Save-After-Success Test & Atomic Rollback Handling
+  console.log("\n[Test 14] Testing Save-After-Success Test & Atomic Rollback Handling...");
   let sessionSaveCallbackInvoked = false;
   let savedSnapshot: any = null;
 
@@ -450,59 +450,79 @@ function runClientTests() {
     }
   });
 
-  const stateBeforeAttempt = JSON.parse(JSON.stringify(transactionalSession.getCurrentState()));
-  const turnsBeforeAttempt = transactionalSession.getTurnsPlayed().length;
-  const historyBeforeAttempt = transactionalSession.getAnnualHistory().length;
+  // Step A: Successfully play Year 1 with 1 project first so session has pre-existing history
+  transactionalSession.playYearPlan(
+    [{ intervention_id: "pocket_parks", budget_allocated: 20 }],
+    { year: 1 }
+  );
+  console.assert(transactionalSession.getTurnsPlayed().length === 1, "Expected 1 initial turn");
+  console.assert(transactionalSession.getAnnualHistory().length === 1, "Expected 1 initial annual record");
+  console.assert(transactionalSession.getCurrentTurn() === 1, "Current turn is 1");
 
-  // Attempt a plan that fails during simulation (e.g., invalid intervention)
+  // Step B: Snapshot state before attempting Year 2 plan that fails mid-way
+  const baselineStateSnapshot = JSON.parse(JSON.stringify(transactionalSession.getCurrentState()));
+  const baselineTurnsPlayed = JSON.parse(JSON.stringify(transactionalSession.getTurnsPlayed()));
+  const baselineAnnualHistory = JSON.parse(JSON.stringify(transactionalSession.getAnnualHistory()));
+  const baselineTurnNumber = transactionalSession.getCurrentTurn();
+
+  sessionSaveCallbackInvoked = false;
+  savedSnapshot = null;
+
+  // Attempt Year 2 plan where project 1 is valid, but project 2 causes a tool error / invalid input
   let transactionFailed = false;
   try {
     transactionalSession.playYearPlan(
       [
-        { intervention_id: "pocket_parks", budget_allocated: 20 },
-        { intervention_id: "invalid_intervention" as any, budget_allocated: 20 }
+        { intervention_id: "urban_canopy_trees", budget_allocated: 15 },
+        { intervention_id: "invalid_intervention_id" as any, budget_allocated: 10 }
       ],
-      { year: 1 }
+      { year: 2 }
     );
   } catch (err: unknown) {
     transactionFailed = true;
-    console.log("✓ Expected simulation failure caught:", (err as Error).message);
+    console.log("✓ Expected simulation failure caught during Year 2 plan:", (err as Error).message);
   }
 
   console.assert(transactionFailed, "Transaction must fail and catch error");
   console.assert(!sessionSaveCallbackInvoked, "onSessionSaved callback must NOT be called on failure");
-  console.assert(
-    JSON.stringify(transactionalSession.getCurrentState()) === JSON.stringify(stateBeforeAttempt),
-    "Client state must be completely unmutated after failed plan execution"
-  );
-  console.assert(
-    transactionalSession.getTurnsPlayed().length === turnsBeforeAttempt,
-    "turnsPlayed must remain completely untouched on failed plan"
-  );
-  console.assert(
-    transactionalSession.getAnnualHistory().length === historyBeforeAttempt,
-    "annualHistory must remain completely untouched on failed plan"
-  );
-  console.log("✓ Atomic rollback verified: state, turns, and annual history were preserved.");
 
-  // Now execute a valid plan and verify atomic commit and onSessionSaved invocation
-  const validPlanResult = transactionalSession.playYearPlan(
+  // Verify that turnsPlayed, annualHistory, and currentState remain strictly identical to pre-call state (no partial writes)
+  console.assert(
+    JSON.stringify(transactionalSession.getCurrentState()) === JSON.stringify(baselineStateSnapshot),
+    "currentState must remain strictly identical to pre-call state on failed run"
+  );
+  console.assert(
+    transactionalSession.getCurrentTurn() === baselineTurnNumber,
+    "currentTurnNumber must not advance on failed run"
+  );
+  console.assert(
+    JSON.stringify(transactionalSession.getTurnsPlayed()) === JSON.stringify(baselineTurnsPlayed),
+    "turnsPlayed must remain strictly identical to pre-call state (no partial turn writes)"
+  );
+  console.assert(
+    JSON.stringify(transactionalSession.getAnnualHistory()) === JSON.stringify(baselineAnnualHistory),
+    "annualHistory must remain strictly identical to pre-call state (no partial annual plan writes)"
+  );
+  console.log("✓ Zero partial turn writes confirmed: turnsPlayed, annualHistory, and currentState strictly unchanged after failure.");
+
+  // Step C: Execute a valid Year 2 plan and verify atomic commit and onSessionSaved invocation
+  const validYear2Result = transactionalSession.playYearPlan(
     [
-      { intervention_id: "pocket_parks", budget_allocated: 20 },
+      { intervention_id: "urban_canopy_trees", budget_allocated: 15 },
       { intervention_id: "cool_roofs", budget_allocated: 16 }
     ],
-    { year: 1 }
+    { year: 2 }
   );
 
   console.assert(sessionSaveCallbackInvoked, "onSessionSaved must be invoked after successful execution");
   console.assert(savedSnapshot !== null, "Saved snapshot payload must be populated");
-  console.assert(savedSnapshot.current_turn === 1, "Saved snapshot turn should be 1");
-  console.assert(savedSnapshot.remaining_budget === 64, "Saved snapshot remaining budget should be 64");
-  console.assert(transactionalSession.getTurnsPlayed().length === 2, "2 turns recorded on success");
-  console.assert(transactionalSession.getAnnualHistory().length === 1, "1 annual history recorded on success");
-  console.log("✓ Save-after-success handling verified: onSessionSaved called with updated session snapshot.");
+  console.assert(savedSnapshot.current_turn === 2, "Saved snapshot turn should be 2");
+  console.assert(savedSnapshot.remaining_budget === 49, "Saved snapshot remaining budget should be 49 (100 - 20 - 31)");
+  console.assert(transactionalSession.getTurnsPlayed().length === 3, "3 total turns recorded after success");
+  console.assert(transactionalSession.getAnnualHistory().length === 2, "2 annual records recorded after success");
+  console.log("✓ Save-after-success handling verified: state committed and onSessionSaved called with complete session snapshot.");
 
-  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET, DRY-SEASON METRICS, ANNUAL BUDGET, ATOMIC ROLLBACK) PASSED! 🎉\n");
+  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET, DRY-SEASON METRICS, ANNUAL BUDGET, SAVE-AFTER-SUCCESS) PASSED! 🎉\n");
 }
 
 runClientTests();
