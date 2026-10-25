@@ -129,3 +129,11 @@ export const POLICY_INTERVENTIONS = {
         albedo_boost: 0.35
     }
 };
+export const CANONICAL_PROJECT_EXECUTION_ORDER = {
+    permeable_pavement: 1, // de-paving / civil ground prep first
+    bioswales: 2, // stormwater drainage routing
+    pocket_parks: 3, // surface vegetation and soil conversion
+    urban_canopy_trees: 4, // tree canopy layer
+    green_roofs: 5, // rooftop green infrastructure
+    cool_roofs: 6 // rooftop high-albedo coatings
+};

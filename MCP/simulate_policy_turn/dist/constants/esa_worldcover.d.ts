@@ -20,3 +20,4 @@ export declare const ESA_WORLDCOVER_PROPERTIES: Record<keyof LandCoverDistributi
  * cost_coins_per_pct: Cost in coins (from 100-coin total budget) to convert 1% of neighborhood area
  */
 export declare const POLICY_INTERVENTIONS: Record<InterventionType, InterventionConfig>;
+export declare const CANONICAL_PROJECT_EXECUTION_ORDER: Record<InterventionType, number>;
