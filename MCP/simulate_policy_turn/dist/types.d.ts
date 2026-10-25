@@ -224,6 +224,7 @@ export declare const YearPlanProjectSchema: z.ZodObject<{
 export type YearPlanProject = z.infer<typeof YearPlanProjectSchema>;
 export declare const YearPlanInputSchema: z.ZodObject<{
     year: z.ZodOptional<z.ZodNumber>;
+    annual_budget_limit: z.ZodOptional<z.ZodNumber>;
     max_annual_budget: z.ZodOptional<z.ZodNumber>;
     projects: z.ZodArray<z.ZodObject<{
         intervention_id: z.ZodEnum<["green_roofs", "pocket_parks", "urban_canopy_trees", "permeable_pavement", "bioswales", "cool_roofs"]>;
@@ -375,6 +376,7 @@ export declare const YearPlanInputSchema: z.ZodObject<{
         project_name?: string | undefined;
     }[];
     year?: number | undefined;
+    annual_budget_limit?: number | undefined;
     max_annual_budget?: number | undefined;
 }, {
     current_state: {
@@ -408,9 +410,17 @@ export declare const YearPlanInputSchema: z.ZodObject<{
         project_name?: string | undefined;
     }[];
     year?: number | undefined;
+    annual_budget_limit?: number | undefined;
     max_annual_budget?: number | undefined;
 }>;
 export type YearPlanInput = z.infer<typeof YearPlanInputSchema>;
+export type SimulationErrorCode = "EMPTY_PLAN" | "INVALID_PROJECT" | "NON_POSITIVE_BUDGET" | "ANNUAL_BUDGET_EXCEEDED" | "REMAINING_BUDGET_EXCEEDED" | "DUPLICATE_PROJECT_TYPE" | "UNKNOWN_INTERVENTION";
+export interface SimulationPlanErrorDetail {
+    error_code: SimulationErrorCode;
+    project_index?: number;
+    project_name?: string;
+    message: string;
+}
 export interface SimulationResult {
     turn: number;
     intervention: {

@@ -45,12 +45,13 @@ export const YearPlanProjectSchema = z.object({
         "bioswales",
         "cool_roofs"
     ]).describe("Selected urban policy intervention"),
-    budget_allocated: z.number().positive().describe("Budget allocated for this intervention in coins or USD"),
+    budget_allocated: z.number().positive().describe("Strictly positive budget allocated for this intervention in coins or USD"),
     project_name: z.string().optional().describe("Optional custom display name for this project")
 });
 export const YearPlanInputSchema = z.object({
     year: z.number().int().min(1).max(5).optional().describe("Optional year or turn identifier (1 to 5)"),
-    max_annual_budget: z.number().positive().optional().describe("Optional annual budget ceiling for this plan in coins or USD"),
+    annual_budget_limit: z.number().positive().optional().describe("Optional annual budget limit for this plan in dollars or coins (e.g., 1000 USD = 100 coins)"),
+    max_annual_budget: z.number().positive().optional().describe("Alias for annual_budget_limit for backward compatibility"),
     projects: z.array(YearPlanProjectSchema).min(1).describe("List of interventions to execute within the year plan"),
     current_state: z.object({
         total_area_hectares: z.number().positive().default(50).describe("Total neighborhood area in hectares"),
