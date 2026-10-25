@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "tsx test/simulate_test.ts"
+    "test": "tsx test/simulate_test.ts && tsx test/simulate_year_plan_test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
