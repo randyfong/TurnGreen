@@ -102,6 +102,116 @@ const SIMULATE_POLICY_TURN_TOOL = {
         required: ["turn", "intervention_id", "budget_allocated", "current_state"]
     }
 };
+const SIMULATE_YEAR_PLAN_TOOL = {
+    name: "simulate_year_plan",
+    description: "Simulates an entire year's climate action plan containing a list of multiple urban policy interventions in TurnGreen. Calculates aggregated biophysical shifts (temperature drop, stormwater retention, UN SDG 15.3.1 land restoration) using Stanford InVEST Urban Cooling & Urban Flood Risk equations. Stateless: accepts current state and project list, returns updated state, aggregated youth scorecard, and comprehensive scientific metadata payload.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            year: {
+                type: "integer",
+                minimum: 1,
+                maximum: 5,
+                description: "Optional year or turn identifier (1 to 5)"
+            },
+            projects: {
+                type: "array",
+                description: "List of urban policy interventions to execute in this year plan",
+                items: {
+                    type: "object",
+                    properties: {
+                        intervention_id: {
+                            type: "string",
+                            enum: [
+                                "green_roofs",
+                                "pocket_parks",
+                                "urban_canopy_trees",
+                                "permeable_pavement",
+                                "bioswales",
+                                "cool_roofs"
+                            ],
+                            description: "Selected policy intervention to deploy"
+                        },
+                        budget_allocated: {
+                            type: "number",
+                            minimum: 1,
+                            description: "Budget amount in USD allocated to this project"
+                        },
+                        project_name: {
+                            type: "string",
+                            description: "Optional custom display name for this project"
+                        }
+                    },
+                    required: ["intervention_id", "budget_allocated"]
+                }
+            },
+            current_state: {
+                type: "object",
+                description: "Current stateless neighborhood and budget state",
+                properties: {
+                    total_area_hectares: {
+                        type: "number",
+                        default: 50,
+                        description: "Total neighborhood area in hectares (default: 50)"
+                    },
+                    remaining_budget: {
+                        type: "number",
+                        default: 200000,
+                        description: "Current remaining budget before this plan"
+                    },
+                    roof_treatment_hectares: {
+                        type: "number",
+                        default: 0,
+                        minimum: 0,
+                        description: "Cumulative area of high-albedo cool roofs/surfaces retrofitted in hectares"
+                    },
+                    baseline_runoff_mm: {
+                        type: "number",
+                        minimum: 0,
+                        description: "Baseline Turn 0 storm runoff depth in mm"
+                    },
+                    baseline_land_cover: {
+                        type: "object",
+                        description: "Baseline Turn 0 ESA WorldCover percentages",
+                        properties: {
+                            tree_cover_10: { type: "number", minimum: 0, maximum: 100 },
+                            shrubland_20: { type: "number", minimum: 0, maximum: 100 },
+                            grassland_30: { type: "number", minimum: 0, maximum: 100 },
+                            cropland_40: { type: "number", minimum: 0, maximum: 100 },
+                            built_up_50: { type: "number", minimum: 0, maximum: 100 },
+                            bare_soil_60: { type: "number", minimum: 0, maximum: 100 },
+                            water_80: { type: "number", minimum: 0, maximum: 100 }
+                        }
+                    },
+                    land_cover: {
+                        type: "object",
+                        description: "Current ESA WorldCover land cover percentages (summing to 100)",
+                        properties: {
+                            tree_cover_10: { type: "number", minimum: 0, maximum: 100 },
+                            shrubland_20: { type: "number", minimum: 0, maximum: 100 },
+                            grassland_30: { type: "number", minimum: 0, maximum: 100 },
+                            cropland_40: { type: "number", minimum: 0, maximum: 100 },
+                            built_up_50: { type: "number", minimum: 0, maximum: 100 },
+                            bare_soil_60: { type: "number", minimum: 0, maximum: 100 },
+                            water_80: { type: "number", minimum: 0, maximum: 100 }
+                        },
+                        required: [
+                            "tree_cover_10",
+                            "shrubland_20",
+                            "grassland_30",
+                            "cropland_40",
+                            "built_up_50",
+                            "bare_soil_60",
+                            "water_80"
+                        ]
+                    }
+                },
+                required: ["total_area_hectares", "remaining_budget", "land_cover"]
+            }
+        },
+        required: ["projects", "current_state"]
+    }
+};
 export function executeSimulation(inputRaw) {
     const parsed = PolicyInputSchema.parse(inputRaw);
     const { turn, intervention_id, budget_allocated, current_state } = parsed;
@@ -552,7 +662,7 @@ async function startServer() {
     });
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
-            tools: [SIMULATE_POLICY_TURN_TOOL]
+            tools: [SIMULATE_POLICY_TURN_TOOL, SIMULATE_YEAR_PLAN_TOOL]
         };
     });
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -576,6 +686,31 @@ async function startServer() {
                         {
                             type: "text",
                             text: `Simulation error: ${errorMsg}`
+                        }
+                    ]
+                };
+            }
+        }
+        if (request.params.name === "simulate_year_plan") {
+            try {
+                const result = executeYearPlanSimulation(request.params.arguments);
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: JSON.stringify(result, null, 2)
+                        }
+                    ]
+                };
+            }
+            catch (err) {
+                const errorMsg = err instanceof Error ? err.message : String(err);
+                return {
+                    isError: true,
+                    content: [
+                        {
+                            type: "text",
+                            text: `Year plan simulation error: ${errorMsg}`
                         }
                     ]
                 };
