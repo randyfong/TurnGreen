@@ -51,6 +51,42 @@ export interface ClientTurnInput {
 
 export type PolicyTurnInput = ClientTurnInput;
 
+export interface TurnRecordWithDrySeason extends TurnRecord {
+  budget_currency?: "coins" | "usd";
+  dry_season_impact?: {
+    drought_resilience_score: number;
+    temperature_under_dry_heat_display: string;
+    drought_summary: string;
+    drought_precipitation_mm: number;
+    et_loss_pct: number;
+    canopy_resilience_ratio: number;
+    drought_retention_pct: number;
+  };
+}
+
+export interface AnnualPlanRecord {
+  year: number;
+  projects: Array<{
+    intervention_id: InterventionType;
+    intervention_name: string;
+    project_name?: string;
+    budget_allocated: number;
+    area_converted_ha: number;
+  }>;
+  total_spent: number;
+  remaining_budget: number;
+  budget_currency: "coins" | "usd";
+  dry_season_impact?: {
+    drought_resilience_score: number;
+    temperature_under_dry_heat_display: string;
+    drought_summary: string;
+    drought_precipitation_mm: number;
+    et_loss_pct: number;
+    canopy_resilience_ratio: number;
+    drought_retention_pct: number;
+  };
+}
+
 export interface ClientSessionConfig {
   session_id?: string;
   total_area_hectares?: number;
@@ -154,7 +190,8 @@ export class TurnGreenClientSession {
   private currentState: NeighborhoodState;
   private initialLandCover: LandCoverDistribution;
   private initialMaxBudget: number;
-  private turnsPlayed: TurnRecord[] = [];
+  private turnsPlayed: TurnRecordWithDrySeason[] = [];
+  private annualHistory: AnnualPlanRecord[] = [];
   private currentTurnNumber: number = 0;
 
   constructor(config: ClientSessionConfig = {}) {
@@ -232,8 +269,12 @@ export class TurnGreenClientSession {
     return this.postAssessment ? { ...this.postAssessment } : null;
   }
 
-  public getTurnsPlayed(): ReadonlyArray<TurnRecord> {
+  public getTurnsPlayed(): ReadonlyArray<TurnRecordWithDrySeason> {
     return [...this.turnsPlayed];
+  }
+
+  public getAnnualHistory(): ReadonlyArray<AnnualPlanRecord> {
+    return [...this.annualHistory];
   }
 
   public getLearningGainResult(): Readonly<AssessmentRecordResponse["learning_gain"]> | null {
@@ -506,22 +547,67 @@ export class TurnGreenClientSession {
 
     // Record each executed project into turnsPlayed for downstream resolution generator
     const intermediateSteps = planResult.science_payload.intermediate_steps ?? [];
+    const dryImpact = planResult.science_payload.dry_season_impact;
+    const scorecardDry = planResult.youth_scorecard.dry_season_impact;
+    const dryImpactPayload = dryImpact
+      ? {
+          drought_resilience_score: dryImpact.drought_resilience_score,
+          temperature_under_dry_heat_display: scorecardDry?.temperature_under_dry_heat_display ?? `${dryImpact.peak_dry_heat_surface_temp_celsius}°C`,
+          drought_summary: scorecardDry?.drought_summary ?? dryImpact.sponge_capacity_description,
+          drought_precipitation_mm: dryImpact.drought_precipitation_mm,
+          et_loss_pct: dryImpact.et_loss_pct,
+          canopy_resilience_ratio: dryImpact.canopy_resilience_ratio,
+          drought_retention_pct: dryImpact.drought_retention_pct
+        }
+      : undefined;
+
     planResult.projects_executed.forEach((proj, idx) => {
       const step = intermediateSteps[idx];
-      const turnRecord: TurnRecord = {
+      const turnRecord: TurnRecordWithDrySeason = {
         turn: Math.min(5, this.turnsPlayed.length + 1),
         intervention_id: proj.intervention_id,
         intervention_name: proj.project_name || proj.intervention_name,
         budget_allocated: proj.budget_allocated,
+        budget_currency: this.currentState.budget_currency ?? "coins",
         area_converted_ha: proj.area_converted_hectares,
         surface_temp_drop_celsius: step?.post_step_temp_drop_celsius ?? planResult.science_payload.invest_urban_cooling.surface_temp_drop_celsius,
         runoff_retained_m3: step?.post_step_stormwater_retained_m3 ?? planResult.science_payload.invest_urban_flood.stormwater_retained_m3,
         esa_conversions: Object.fromEntries(
           Object.entries(planResult.science_payload.cumulative_esa_worldcover_shifts).map(([k, v]) => [k, v.delta_pct])
-        )
+        ),
+        dry_season_impact: dryImpactPayload
       };
       this.turnsPlayed.push(turnRecord);
     });
+
+    // Record annual plan history with dry-season stress metrics and coin/budget status
+    const annualRecord: AnnualPlanRecord = {
+      year: yearNumber,
+      projects: planResult.projects_executed.map((p) => ({
+        intervention_id: p.intervention_id,
+        intervention_name: p.intervention_name,
+        project_name: p.project_name,
+        budget_allocated: p.budget_allocated,
+        area_converted_ha: p.area_converted_hectares
+      })),
+      total_spent: planResult.total_budget_spent,
+      remaining_budget: this.currentState.remaining_budget,
+      budget_currency: this.currentState.budget_currency ?? "coins",
+      ...(dryImpact
+        ? {
+            dry_season_impact: {
+              drought_resilience_score: dryImpact.drought_resilience_score,
+              temperature_under_dry_heat_display: scorecardDry?.temperature_under_dry_heat_display ?? `${dryImpact.peak_dry_heat_surface_temp_celsius}°C`,
+              drought_summary: scorecardDry?.drought_summary ?? dryImpact.sponge_capacity_description,
+              drought_precipitation_mm: dryImpact.drought_precipitation_mm,
+              et_loss_pct: dryImpact.et_loss_pct,
+              canopy_resilience_ratio: dryImpact.canopy_resilience_ratio,
+              drought_retention_pct: dryImpact.drought_retention_pct
+            }
+          }
+        : {})
+    };
+    this.annualHistory.push(annualRecord);
 
     return planResult;
   }

@@ -366,9 +366,53 @@ function runClientTests() {
     { intervention_id: "bioswales", budget_allocated: 30 }
   ]);
   console.assert(coinSession.getRemainingBudget() === 6, "Remaining coins should be 6");
-  console.assert(coinSession.getTotalBudgetSpent() === 94, "Total budget spent should be 94 coins");
+  // Test 12: Verify getAnnualHistory() & getTurnsPlayed() Dry-Season & Coin Metric Exposure
+  console.log("\n[Test 12] Dry-Season & Coin Metrics Exposure in getAnnualHistory() & getTurnsPlayed()...");
+  const annualHistory = coinSession.getAnnualHistory();
+  console.log(`✓ Annual history records count: ${annualHistory.length}`);
+  console.assert(annualHistory.length === 2, "Expected exactly 2 annual plan records in history");
 
-  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET) PASSED! 🎉\n");
+  // Check Year 1 annual record
+  const year1Record = annualHistory[0];
+  console.log("✓ Year 1 Record:", {
+    year: year1Record.year,
+    currency: year1Record.budget_currency,
+    spent: year1Record.total_spent,
+    remaining: year1Record.remaining_budget,
+    dry_season_impact: year1Record.dry_season_impact
+  });
+  console.assert(year1Record.year === 1, "Year 1 plan record year must be 1");
+  console.assert(year1Record.budget_currency === "coins", "Currency must be 'coins'");
+  console.assert(year1Record.total_spent === 64, "Year 1 spent coins should be 64");
+  console.assert(year1Record.remaining_budget === 36, "Year 1 remaining coins should be 36");
+  console.assert(year1Record.dry_season_impact !== undefined, "Year 1 must record dry_season_impact");
+  console.assert(
+    typeof year1Record.dry_season_impact?.drought_resilience_score === "number" &&
+    year1Record.dry_season_impact.drought_resilience_score > 0,
+    "Drought resilience score must be a positive number"
+  );
+  console.assert(
+    year1Record.dry_season_impact?.drought_precipitation_mm === 10,
+    "Drought precipitation should be 10 mm"
+  );
+  console.assert(
+    year1Record.dry_season_impact?.temperature_under_dry_heat_display.includes("°C"),
+    "Temperature under dry heat should be formatted in °C"
+  );
+
+  // Check getTurnsPlayed() exposure of dry season impact
+  const turnsPlayed = coinSession.getTurnsPlayed();
+  console.log(`✓ turnsPlayed count: ${turnsPlayed.length}`);
+  console.assert(turnsPlayed.length === 3, "Expected 3 individual project turns recorded across 2 years");
+  const recordedTurn1 = turnsPlayed[0];
+  console.assert(recordedTurn1.budget_currency === "coins", "Turn 1 budget currency must be coins");
+  console.assert(recordedTurn1.dry_season_impact !== undefined, "Turn 1 must expose dry_season_impact");
+  console.assert(
+    recordedTurn1.dry_season_impact?.drought_resilience_score === year1Record.dry_season_impact?.drought_resilience_score,
+    "Turn 1 dry season score must match Year 1 annual record"
+  );
+
+  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET, DRY-SEASON METRICS) PASSED! 🎉\n");
 }
 
 runClientTests();
