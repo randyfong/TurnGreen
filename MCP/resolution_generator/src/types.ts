@@ -102,6 +102,9 @@ export interface BiophysicalScorecard {
   bare_soil_vegetated_ha?: number;
   rooftop_treated_ha: number;
   total_trees_or_greenspace_pct_increase: number;
+  simulated_greenspace_gain_ha?: number;
+  total_district_area_ha?: number;
+  greenspace_gain_calculation_basis?: string;
   un_sdg_15_3_1_avoided_degradation_score: string;
   budget_efficiency_rating: string;
 }

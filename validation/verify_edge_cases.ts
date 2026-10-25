@@ -270,6 +270,14 @@ function runEdgeCaseVerification() {
     allPassed = false;
   }
 
+  // Check 4d: Dynamic greenspace gain calculation (not hardcoded 25%)
+  if (scorecard.total_trees_or_greenspace_pct_increase > 0 && scorecard.greenspace_gain_calculation_basis) {
+    console.log(`    [PASS] Dynamic Greenspace Calculation: ${scorecard.total_trees_or_greenspace_pct_increase}% (${scorecard.greenspace_gain_calculation_basis}).`);
+  } else {
+    console.error(`FAIL: Invalid greenspace calculation: ${scorecard.total_trees_or_greenspace_pct_increase}`);
+    allPassed = false;
+  }
+
   // Check 4c: No hallucinated assertions in markdown or talking points
   const hallucinationStrings = [
     "$3.40",

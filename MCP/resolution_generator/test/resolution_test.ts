@@ -100,6 +100,9 @@ try {
   assert.strictEqual(result.author_name, "Maya Chen");
   assert.strictEqual(result.district_name, "District 7 - Southside Heat Basin");
   assert.strictEqual(result.biophysical_scorecard.total_stormwater_retained_m3, 4900, "Should match final_metrics single-storm retention");
+  assert(result.biophysical_scorecard.total_trees_or_greenspace_pct_increase > 0, "Greenspace increase should be positive");
+  assert.strictEqual(typeof result.biophysical_scorecard.greenspace_gain_calculation_basis, "string", "Should have calculation basis description");
+  console.log("[PASS] Dynamic Greenspace Increase:", `${result.biophysical_scorecard.total_trees_or_greenspace_pct_increase}% (${result.biophysical_scorecard.greenspace_gain_calculation_basis})`);
   assert.strictEqual(result.talking_points.length, 3, "Must generate exactly 3 talking points");
 
   console.log("\n--- Generated 3 Actionable Talking Points ---");
