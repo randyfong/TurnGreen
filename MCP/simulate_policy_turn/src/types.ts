@@ -229,8 +229,8 @@ export interface ExecutedPlanProject {
   intervention_id: InterventionType;
   intervention_name: string;
   project_name?: string;
-  original_index?: number;
-  executed_index?: number;
+  original_index: number; // 0-based index of the project in the input list
+  executed_index: number; // 0-based index of the project in canonical execution order
   budget_requested: number;
   budget_allocated: number;
   budget_capped: boolean;
