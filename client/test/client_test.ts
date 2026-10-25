@@ -436,7 +436,73 @@ function runClientTests() {
   }
   console.assert(annualLimitCaught, "playYearPlan must reject batch plans exceeding annual_budget_limit before dispatch");
 
-  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET, DRY-SEASON METRICS, ANNUAL BUDGET) PASSED! 🎉\n");
+  // Test 14: Atomic Save-After-Success and Rollback Handling
+  console.log("\n[Test 14] Testing Atomic Save-After-Success & Rollback Handling...");
+  let sessionSaveCallbackInvoked = false;
+  let savedSnapshot: any = null;
+
+  const transactionalSession = new TurnGreenClientSession({
+    initial_coins: 100,
+    budget_currency: "coins",
+    on_session_saved: (state) => {
+      sessionSaveCallbackInvoked = true;
+      savedSnapshot = state;
+    }
+  });
+
+  const stateBeforeAttempt = JSON.parse(JSON.stringify(transactionalSession.getCurrentState()));
+  const turnsBeforeAttempt = transactionalSession.getTurnsPlayed().length;
+  const historyBeforeAttempt = transactionalSession.getAnnualHistory().length;
+
+  // Attempt a plan that fails during simulation (e.g., invalid intervention)
+  let transactionFailed = false;
+  try {
+    transactionalSession.playYearPlan(
+      [
+        { intervention_id: "pocket_parks", budget_allocated: 20 },
+        { intervention_id: "invalid_intervention" as any, budget_allocated: 20 }
+      ],
+      { year: 1 }
+    );
+  } catch (err: unknown) {
+    transactionFailed = true;
+    console.log("✓ Expected simulation failure caught:", (err as Error).message);
+  }
+
+  console.assert(transactionFailed, "Transaction must fail and catch error");
+  console.assert(!sessionSaveCallbackInvoked, "onSessionSaved callback must NOT be called on failure");
+  console.assert(
+    JSON.stringify(transactionalSession.getCurrentState()) === JSON.stringify(stateBeforeAttempt),
+    "Client state must be completely unmutated after failed plan execution"
+  );
+  console.assert(
+    transactionalSession.getTurnsPlayed().length === turnsBeforeAttempt,
+    "turnsPlayed must remain completely untouched on failed plan"
+  );
+  console.assert(
+    transactionalSession.getAnnualHistory().length === historyBeforeAttempt,
+    "annualHistory must remain completely untouched on failed plan"
+  );
+  console.log("✓ Atomic rollback verified: state, turns, and annual history were preserved.");
+
+  // Now execute a valid plan and verify atomic commit and onSessionSaved invocation
+  const validPlanResult = transactionalSession.playYearPlan(
+    [
+      { intervention_id: "pocket_parks", budget_allocated: 20 },
+      { intervention_id: "cool_roofs", budget_allocated: 16 }
+    ],
+    { year: 1 }
+  );
+
+  console.assert(sessionSaveCallbackInvoked, "onSessionSaved must be invoked after successful execution");
+  console.assert(savedSnapshot !== null, "Saved snapshot payload must be populated");
+  console.assert(savedSnapshot.current_turn === 1, "Saved snapshot turn should be 1");
+  console.assert(savedSnapshot.remaining_budget === 64, "Saved snapshot remaining budget should be 64");
+  console.assert(transactionalSession.getTurnsPlayed().length === 2, "2 turns recorded on success");
+  console.assert(transactionalSession.getAnnualHistory().length === 1, "1 annual history recorded on success");
+  console.log("✓ Save-after-success handling verified: onSessionSaved called with updated session snapshot.");
+
+  console.log("\n🎉 ALL TESTS (PRE-FLIGHT, RESPONSE CONTRACT, SCORE MAPPING, COIN BUDGET, DRY-SEASON METRICS, ANNUAL BUDGET, ATOMIC ROLLBACK) PASSED! 🎉\n");
 }
 
 runClientTests();

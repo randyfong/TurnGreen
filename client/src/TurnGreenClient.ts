@@ -103,6 +103,7 @@ export interface ClientSessionConfig {
     | "Planning Commission"
     | "County Board of Supervisors"
     | "Parks & Recreation Commission";
+  on_session_saved?: (sessionState: any) => void;
 }
 
 /**
@@ -194,12 +195,15 @@ export class TurnGreenClientSession {
   private annualHistory: AnnualPlanRecord[] = [];
   private currentTurnNumber: number = 0;
 
+  private onSessionSaved?: (sessionState: any) => void;
+
   constructor(config: ClientSessionConfig = {}) {
     this.sessionId = config.session_id || `turngreen-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     this.authorName = config.author_name || "Youth Delegate";
     this.districtName = config.district_name || "District 1 - Urban Center";
     this.organizationOrSchool = config.organization_or_school;
     this.targetBody = config.target_body || "City Council";
+    this.onSessionSaved = config.on_session_saved;
 
     this.initialLandCover = config.initial_land_cover || {
       tree_cover_10: 12,
@@ -279,6 +283,18 @@ export class TurnGreenClientSession {
 
   public getLearningGainResult(): Readonly<AssessmentRecordResponse["learning_gain"]> | null {
     return this.learningGainResult ? { ...this.learningGainResult } : null;
+  }
+
+  public exportSessionState() {
+    return {
+      session_id: this.sessionId,
+      current_turn: this.currentTurnNumber,
+      remaining_budget: this.currentState.remaining_budget,
+      budget_currency: this.currentState.budget_currency,
+      current_state: { ...this.currentState },
+      turns_played: [...this.turnsPlayed],
+      annual_history: [...this.annualHistory]
+    };
   }
 
   /**
@@ -533,101 +549,119 @@ export class TurnGreenClientSession {
       );
     }
 
-    // Call simulate_year_plan MCP engine wrapped in response contract
-    const planResult = wrapMCPToolCallSync<YearPlanSimulationResult>(() => {
-      try {
-        const payload = executeYearPlanSimulation({
-          year: yearNumber,
-          max_annual_budget: options?.annual_budget_limit,
-          projects,
-          current_state: this.currentState
-        });
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(payload)
-            }
-          ]
-        };
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        return {
-          isError: true,
-          content: [{ type: "text", text: `Year plan simulation error: ${message}` }]
-        };
-      }
-    });
+    // 1. Snapshot previous state for rollback guarantee
+    const previousState = { ...this.currentState };
+    const previousTurn = this.currentTurnNumber;
+    const previousTurnsPlayedCount = this.turnsPlayed.length;
+    const previousAnnualHistoryCount = this.annualHistory.length;
 
-    // Update client session state
-    this.currentTurnNumber = yearNumber;
-    this.currentState = { ...planResult.next_state };
-
-    // Record each executed project into turnsPlayed for downstream resolution generator
-    const intermediateSteps = planResult.science_payload.intermediate_steps ?? [];
-    const dryImpact = planResult.science_payload.dry_season_impact;
-    const scorecardDry = planResult.youth_scorecard.dry_season_impact;
-    const dryImpactPayload = dryImpact
-      ? {
-          drought_resilience_score: dryImpact.drought_resilience_score,
-          temperature_under_dry_heat_display: scorecardDry?.temperature_under_dry_heat_display ?? `${dryImpact.peak_dry_heat_surface_temp_celsius}°C`,
-          drought_summary: scorecardDry?.drought_summary ?? dryImpact.sponge_capacity_description,
-          drought_precipitation_mm: dryImpact.drought_precipitation_mm,
-          et_loss_pct: dryImpact.et_loss_pct,
-          canopy_resilience_ratio: dryImpact.canopy_resilience_ratio,
-          drought_retention_pct: dryImpact.drought_retention_pct
+    try {
+      // 2. Execute simulation & build intermediate records in memory
+      const planResult = wrapMCPToolCallSync<YearPlanSimulationResult>(() => {
+        try {
+          const payload = executeYearPlanSimulation({
+            year: yearNumber,
+            max_annual_budget: options?.annual_budget_limit,
+            projects,
+            current_state: this.currentState
+          });
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(payload)
+              }
+            ]
+          };
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          return {
+            isError: true,
+            content: [{ type: "text", text: `Year plan simulation error: ${message}` }]
+          };
         }
-      : undefined;
+      });
 
-    planResult.projects_executed.forEach((proj, idx) => {
-      const step = intermediateSteps[idx];
-      const turnRecord: TurnRecordWithDrySeason = {
-        turn: Math.min(5, this.turnsPlayed.length + 1),
-        intervention_id: proj.intervention_id,
-        intervention_name: proj.project_name || proj.intervention_name,
-        budget_allocated: proj.budget_allocated,
-        budget_currency: this.currentState.budget_currency ?? "coins",
-        area_converted_ha: proj.area_converted_hectares,
-        surface_temp_drop_celsius: step?.post_step_temp_drop_celsius ?? planResult.science_payload.invest_urban_cooling.surface_temp_drop_celsius,
-        runoff_retained_m3: step?.post_step_stormwater_retained_m3 ?? planResult.science_payload.invest_urban_flood.stormwater_retained_m3,
-        esa_conversions: Object.fromEntries(
-          Object.entries(planResult.science_payload.cumulative_esa_worldcover_shifts).map(([k, v]) => [k, v.delta_pct])
-        ),
-        dry_season_impact: dryImpactPayload
-      };
-      this.turnsPlayed.push(turnRecord);
-    });
-
-    // Record annual plan history with dry-season stress metrics and coin/budget status
-    const annualRecord: AnnualPlanRecord = {
-      year: yearNumber,
-      projects: planResult.projects_executed.map((p) => ({
-        intervention_id: p.intervention_id,
-        intervention_name: p.intervention_name,
-        project_name: p.project_name,
-        budget_allocated: p.budget_allocated,
-        area_converted_ha: p.area_converted_hectares
-      })),
-      total_spent: planResult.total_budget_spent,
-      remaining_budget: this.currentState.remaining_budget,
-      budget_currency: this.currentState.budget_currency ?? "coins",
-      ...(dryImpact
+      // Stage turn records in memory
+      const intermediateSteps = planResult.science_payload.intermediate_steps ?? [];
+      const dryImpact = planResult.science_payload.dry_season_impact;
+      const scorecardDry = planResult.youth_scorecard.dry_season_impact;
+      const dryImpactPayload = dryImpact
         ? {
-            dry_season_impact: {
-              drought_resilience_score: dryImpact.drought_resilience_score,
-              temperature_under_dry_heat_display: scorecardDry?.temperature_under_dry_heat_display ?? `${dryImpact.peak_dry_heat_surface_temp_celsius}°C`,
-              drought_summary: scorecardDry?.drought_summary ?? dryImpact.sponge_capacity_description,
-              drought_precipitation_mm: dryImpact.drought_precipitation_mm,
-              et_loss_pct: dryImpact.et_loss_pct,
-              canopy_resilience_ratio: dryImpact.canopy_resilience_ratio,
-              drought_retention_pct: dryImpact.drought_retention_pct
-            }
+            drought_resilience_score: dryImpact.drought_resilience_score,
+            temperature_under_dry_heat_display: scorecardDry?.temperature_under_dry_heat_display ?? `${dryImpact.peak_dry_heat_surface_temp_celsius}°C`,
+            drought_summary: scorecardDry?.drought_summary ?? dryImpact.sponge_capacity_description,
+            drought_precipitation_mm: dryImpact.drought_precipitation_mm,
+            et_loss_pct: dryImpact.et_loss_pct,
+            canopy_resilience_ratio: dryImpact.canopy_resilience_ratio,
+            drought_retention_pct: dryImpact.drought_retention_pct
           }
-        : {})
-    };
-    this.annualHistory.push(annualRecord);
+        : undefined;
 
-    return planResult;
+      const stagedTurnRecords: TurnRecordWithDrySeason[] = planResult.projects_executed.map((proj, idx) => {
+        const step = intermediateSteps[idx];
+        return {
+          turn: Math.min(5, previousTurnsPlayedCount + idx + 1),
+          intervention_id: proj.intervention_id,
+          intervention_name: proj.project_name || proj.intervention_name,
+          budget_allocated: proj.budget_allocated,
+          budget_currency: planResult.next_state.budget_currency ?? "coins",
+          area_converted_ha: proj.area_converted_hectares,
+          surface_temp_drop_celsius: step?.post_step_temp_drop_celsius ?? planResult.science_payload.invest_urban_cooling.surface_temp_drop_celsius,
+          runoff_retained_m3: step?.post_step_stormwater_retained_m3 ?? planResult.science_payload.invest_urban_flood.stormwater_retained_m3,
+          esa_conversions: Object.fromEntries(
+            Object.entries(planResult.science_payload.cumulative_esa_worldcover_shifts).map(([k, v]) => [k, v.delta_pct])
+          ),
+          dry_season_impact: dryImpactPayload
+        };
+      });
+
+      // Stage annual plan history record in memory
+      const stagedAnnualRecord: AnnualPlanRecord = {
+        year: yearNumber,
+        projects: planResult.projects_executed.map((p) => ({
+          intervention_id: p.intervention_id,
+          intervention_name: p.intervention_name,
+          project_name: p.project_name,
+          budget_allocated: p.budget_allocated,
+          area_converted_ha: p.area_converted_hectares
+        })),
+        total_spent: planResult.total_budget_spent,
+        remaining_budget: planResult.next_state.remaining_budget,
+        budget_currency: planResult.next_state.budget_currency ?? "coins",
+        ...(dryImpact
+          ? {
+              dry_season_impact: {
+                drought_resilience_score: dryImpact.drought_resilience_score,
+                temperature_under_dry_heat_display: scorecardDry?.temperature_under_dry_heat_display ?? `${dryImpact.peak_dry_heat_surface_temp_celsius}°C`,
+                drought_summary: scorecardDry?.drought_summary ?? dryImpact.sponge_capacity_description,
+                drought_precipitation_mm: dryImpact.drought_precipitation_mm,
+                et_loss_pct: dryImpact.et_loss_pct,
+                canopy_resilience_ratio: dryImpact.canopy_resilience_ratio,
+                drought_retention_pct: dryImpact.drought_retention_pct
+              }
+            }
+          : {})
+      };
+
+      // 3. Atomically commit state ONLY after everything succeeds
+      this.currentState = { ...planResult.next_state };
+      this.currentTurnNumber = yearNumber;
+      this.turnsPlayed.push(...stagedTurnRecords);
+      this.annualHistory.push(stagedAnnualRecord);
+
+      // 4. Trigger optional persistence callback if configured
+      this.onSessionSaved?.(this.exportSessionState());
+
+      return planResult;
+    } catch (err) {
+      // Rollback guarantees: state remains completely untouched
+      this.currentState = previousState;
+      this.currentTurnNumber = previousTurn;
+      this.turnsPlayed.length = previousTurnsPlayedCount;
+      this.annualHistory.length = previousAnnualHistoryCount;
+      throw err;
+    }
   }
 
   // --- Civic Resolution Generation ---
