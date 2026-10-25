@@ -413,6 +413,40 @@ export function executeSimulation(inputRaw) {
         }
     };
 }
+/**
+ * Executes the annual climate dry season stress phase exactly once per year plan:
+ * 1. Evaluates low precipitation (P = 10 mm) infiltration and crusting risk.
+ * 2. Evaluates high-temperature evapotranspiration attenuation across shallow vs deep-root vegetation.
+ * 3. Derives drought resilience score and temperature under peak dry-heat stress.
+ */
+export function applyAnnualDrySeason(workingLandCover, options) {
+    const coolRoofConfig = POLICY_INTERVENTIONS.cool_roofs;
+    const coolRoofBoost = ((options.roofTreatmentHa ?? 0) / options.totalAreaHectares) * (coolRoofConfig.albedo_boost ?? 0.35);
+    const totalAlbedoBoost = coolRoofBoost + (options.accumulatedAlbedoBoost ?? 0);
+    const dryCooling = calculateDrySeasonCooling(workingLandCover, totalAlbedoBoost, options.droughtStressFactor ?? 0.5);
+    const dryFlood = calculateDrySeasonFloodRisk(workingLandCover, options.totalAreaHectares, options.droughtPrecipitationMm ?? 10);
+    // Peak dry-heat urban baseline temperature (e.g. 38.0°C in heat wave)
+    const peakDryHeatBaselineC = 38.0;
+    const peakDryHeatSurfaceTempC = Number((peakDryHeatBaselineC - dryCooling.surface_temperature_drop_c).toFixed(2));
+    // Drought resilience score: weighted balance of canopy retention (45%), soil sponge retention (40%), and low ET loss (15%)
+    const canopyScore = Math.min(100, Math.round(dryCooling.canopy_et_retention_ratio * 100));
+    const spongeScore = Math.min(100, Math.round(dryFlood.drought_retention_pct));
+    const etRetentionScore = Math.max(0, Math.min(100, Math.round(100 - dryCooling.et_loss_pct)));
+    const droughtResilienceScore = Math.round((canopyScore * 0.45) + (spongeScore * 0.40) + (etRetentionScore * 0.15));
+    const droughtSummary = droughtResilienceScore >= 75
+        ? `High drought resilience (${droughtResilienceScore}/100): Deep-root canopy and sponge soils maintained cool microclimates during peak dry season.`
+        : droughtResilienceScore >= 50
+            ? `Moderate drought resilience (${droughtResilienceScore}/100): Shallow turf suffered minor moisture loss, but shade buffers mitigated extreme dry heat.`
+            : `Low drought resilience (${droughtResilienceScore}/100): High soil crusting and ET loss during dry season; additional street canopy and bioswales needed.`;
+    return {
+        drySeasonCooling: dryCooling,
+        drySeasonFlood: dryFlood,
+        drought_resilience_score: droughtResilienceScore,
+        peak_dry_heat_surface_temp_celsius: peakDryHeatSurfaceTempC,
+        temperature_under_dry_heat_display: `${peakDryHeatSurfaceTempC}°C (${Number((peakDryHeatSurfaceTempC * 1.8 + 32).toFixed(1))}°F)`,
+        drought_summary: droughtSummary
+    };
+}
 export function executeYearPlanSimulation(args) {
     const parsed = YearPlanInputSchema.parse(args);
     const { year, projects, current_state } = parsed;
@@ -528,10 +562,14 @@ export function executeYearPlanSimulation(args) {
     // 3. Biophysical Modeling for Final Accumulated State
     const postCooling = calculateInVESTCooling(workingLandCover, priorCoolRoofBoost + accumulatedAlbedoBoost);
     const postFlood = calculateInVESTFloodRisk(workingLandCover, current_state.total_area_hectares);
-    // Apply Dry Season Dynamics Once Per Year
-    // Evaluates drought stress on vegetation ET and sponge-soil retention during low precipitation (10 mm)
-    const drySeasonCooling = calculateDrySeasonCooling(workingLandCover, priorCoolRoofBoost + accumulatedAlbedoBoost, 0.5);
-    const drySeasonFlood = calculateDrySeasonFloodRisk(workingLandCover, current_state.total_area_hectares, 10);
+    // Invoke applyAnnualDrySeason exactly once per year as an annual climate stress phase
+    const drySeasonImpact = applyAnnualDrySeason(workingLandCover, {
+        totalAreaHectares: current_state.total_area_hectares,
+        roofTreatmentHa: workingRoofTreatmentHa,
+        accumulatedAlbedoBoost,
+        droughtStressFactor: 0.5,
+        droughtPrecipitationMm: 10
+    });
     // Baseline runoff determination
     const baselineLandCover = current_state.baseline_land_cover ?? initialLandCover;
     let baselineRunoffMm;
@@ -620,7 +658,12 @@ export function executeYearPlanSimulation(args) {
             cooling_stars: coolingStars,
             temperature_drop_display: tempDropDisplay,
             water_retention_analogy: waterAnalogy,
-            neighborhood_vibe: vibe
+            neighborhood_vibe: vibe,
+            dry_season_impact: {
+                drought_resilience_score: drySeasonImpact.drought_resilience_score,
+                temperature_under_dry_heat_display: drySeasonImpact.temperature_under_dry_heat_display,
+                drought_summary: drySeasonImpact.drought_summary
+            }
         },
         science_payload: {
             models_referenced: [
@@ -662,14 +705,16 @@ export function executeYearPlanSimulation(args) {
                 retention_efficiency_pct: postFlood.retention_efficiency_pct
             },
             dry_season_impact: {
-                drought_precipitation_mm: drySeasonFlood.design_storm_depth_mm,
-                drought_temp_drop_celsius: drySeasonCooling.surface_temperature_drop_c,
-                et_loss_pct: drySeasonCooling.et_loss_pct,
-                canopy_resilience_ratio: drySeasonCooling.canopy_et_retention_ratio,
-                drought_retention_pct: drySeasonFlood.drought_retention_pct,
-                sponge_capacity_description: drySeasonFlood.drought_retention_pct >= 95
-                    ? `Natural sponge soils retain ${drySeasonFlood.drought_retention_pct}% of dry-season rainfall without runoff.`
-                    : `Dry season runoff deficit of ${drySeasonFlood.unretained_drought_runoff_m3} m³ due to soil crusting and lack of bioswales.`
+                drought_precipitation_mm: drySeasonImpact.drySeasonFlood.design_storm_depth_mm,
+                drought_temp_drop_celsius: drySeasonImpact.drySeasonCooling.surface_temperature_drop_c,
+                peak_dry_heat_surface_temp_celsius: drySeasonImpact.peak_dry_heat_surface_temp_celsius,
+                drought_resilience_score: drySeasonImpact.drought_resilience_score,
+                et_loss_pct: drySeasonImpact.drySeasonCooling.et_loss_pct,
+                canopy_resilience_ratio: drySeasonImpact.drySeasonCooling.canopy_et_retention_ratio,
+                drought_retention_pct: drySeasonImpact.drySeasonFlood.drought_retention_pct,
+                sponge_capacity_description: drySeasonImpact.drySeasonFlood.drought_retention_pct >= 95
+                    ? `Natural sponge soils retain ${drySeasonImpact.drySeasonFlood.drought_retention_pct}% of dry-season rainfall without runoff.`
+                    : `Dry season runoff deficit of ${drySeasonImpact.drySeasonFlood.unretained_drought_runoff_m3} m³ due to soil crusting and lack of bioswales.`
             },
             intermediate_steps: intermediateSteps
         }

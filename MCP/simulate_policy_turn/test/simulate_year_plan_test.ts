@@ -116,6 +116,8 @@ const dryImpact = planResult.science_payload.dry_season_impact;
 assert.ok(dryImpact, "dry_season_impact must be populated in year plan payload");
 console.log(`  Drought Precipitation: ${dryImpact.drought_precipitation_mm} mm`);
 console.log(`  Drought Cooling Drop: ${dryImpact.drought_temp_drop_celsius}°C`);
+console.log(`  Peak Dry-Heat Surface Temp: ${dryImpact.peak_dry_heat_surface_temp_celsius}°C`);
+console.log(`  Drought Resilience Score: ${dryImpact.drought_resilience_score}`);
 console.log(`  ET Loss under Drought: ${dryImpact.et_loss_pct}%`);
 console.log(`  Canopy Resilience Ratio: ${dryImpact.canopy_resilience_ratio}`);
 console.log(`  Dry Season Storm Retention: ${dryImpact.drought_retention_pct}%`);
@@ -125,6 +127,17 @@ assert.strictEqual(dryImpact.drought_precipitation_mm, 10, "Dry season precipita
 assert.ok(dryImpact.et_loss_pct > 0, "Evapotranspiration must experience drought attenuation");
 assert.ok(dryImpact.canopy_resilience_ratio > 0, "Canopy deep-root resilience must be quantified");
 assert.ok(dryImpact.drought_retention_pct >= 0 && dryImpact.drought_retention_pct <= 100, "Retention pct must be valid");
-console.log("✓ Annual dry season biophysical dynamics verified!");
+assert.ok(dryImpact.drought_resilience_score >= 0 && dryImpact.drought_resilience_score <= 100, "Drought resilience score must be 0-100");
+
+// Check youth_scorecard dry_season_impact
+const scorecardDry = planResult.youth_scorecard.dry_season_impact;
+assert.ok(scorecardDry, "youth_scorecard.dry_season_impact must be populated");
+console.log(`  Scorecard Drought Resilience Score: ${scorecardDry.drought_resilience_score}/100`);
+console.log(`  Scorecard Dry-Heat Temp Display: ${scorecardDry.temperature_under_dry_heat_display}`);
+console.log(`  Scorecard Drought Summary: ${scorecardDry.drought_summary}`);
+assert.strictEqual(scorecardDry.drought_resilience_score, dryImpact.drought_resilience_score);
+assert.ok(scorecardDry.temperature_under_dry_heat_display.includes("°C"));
+
+console.log("✓ Annual dry season biophysical dynamics & scorecard verified!");
 
 console.log("\n🎉 ALL SIMULATE_YEAR_PLAN UNIT TESTS PASSED! 🎉\n");

@@ -504,6 +504,11 @@ export interface YearPlanSimulationResult {
         temperature_drop_display: string;
         water_retention_analogy: string;
         neighborhood_vibe: string;
+        dry_season_impact?: {
+            drought_resilience_score: number;
+            temperature_under_dry_heat_display: string;
+            drought_summary: string;
+        };
     };
     science_payload: {
         models_referenced: string[];
@@ -546,6 +551,8 @@ export interface YearPlanSimulationResult {
         dry_season_impact?: {
             drought_precipitation_mm: number;
             drought_temp_drop_celsius: number;
+            peak_dry_heat_surface_temp_celsius: number;
+            drought_resilience_score: number;
             et_loss_pct: number;
             canopy_resilience_ratio: number;
             drought_retention_pct: number;
